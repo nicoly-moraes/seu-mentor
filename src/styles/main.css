@@ -1,0 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Italiana&family=Onest:wght@100..900&display=swap');
+
+html {
+    overflow: auto;
+    font-family: "Onest", sans-serif;
+}
+
+.header-principal {
+    position: sticky !important;
+    top: 0px;
+}
+
+.info-list .v-overlay__content {
+    border-radius: 12px !important;
+}
+
+.header-principal .v-toolbar__content {
+    height: auto !important;
+}
+
+.header-principal .v-field {
+    border-radius: 12px;
+}
