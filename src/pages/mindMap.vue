@@ -1,5 +1,8 @@
 <template>
-  <p>Pagina do mapa mental</p>
+  <a href="https://www.exemplo.com">
+  <img src="@/assets/mindmental.jpg" alt="Descrição da imagem">
+</a>
+
 </template>
 
 <script lang="ts">
