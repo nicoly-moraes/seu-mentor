@@ -1,6 +1,6 @@
 <template>
   <div class="banner">
-    <p class="titulo">Venha aprender com a gente, e ensinar também!</p>
+    <p class="titulo">Venha aprender e ensinar com a gente!</p>
   </div>
   <div class="info">
     <p class="segundo-titulo">Escolha o seu papel</p>
@@ -68,9 +68,11 @@ export default {
 }
 
 .titulo {
+  margin-top: 194px;
   text-align: center;
   font-size: 50px;
   color: #FFFFFF;
+  text-shadow: 3px 3px 5px #888888;
 }
 
 .info {
