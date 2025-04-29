@@ -38,6 +38,8 @@ export default {
   color: #001229;
   padding-top: 20px;
   padding-bottom: 20px;
+  position: sticky;
+  top: 100%;
 }
 
 .logo {
