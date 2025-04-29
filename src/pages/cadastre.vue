@@ -4,12 +4,11 @@
       Comece a sua Jornada!
     </h1>
   </section>
-  <v-form>
+  <v-form class="form">
     <div class="box">
       <v-row>
           <v-col
             cols="12"
-            md="7"
           >
             <v-text-field
             v-model="nome"
@@ -23,7 +22,6 @@
 
           <v-col
             cols="12"
-            md="5"
           >
             <v-text-field
             v-model="celular"
@@ -37,7 +35,6 @@
 
           <v-col
             cols="12"
-            md="6"
           >
             <v-text-field
             v-model="email"
@@ -51,7 +48,6 @@
 
           <v-col
             cols="12"
-            md="6"
           >
             <v-text-field
             v-model="senha"
@@ -62,30 +58,6 @@
             variant="solo-filled"
             required
             ></v-text-field>
-          </v-col>
-
-          <v-col
-            cols="12"
-            md="6"
-          >
-            <v-select
-              label="Área de Interesse"
-              data-vv-name="select"
-              variant="solo-filled"
-              required
-            ></v-select>
-          </v-col>
-
-          <v-col
-            cols="12"
-            md="6"
-          >
-            <v-select
-              label="Escolha um papel"
-              data-vv-name="select"
-              variant="solo-filled"
-              required
-            ></v-select>
           </v-col>
 
           <v-col cols="12" class="text-center">
@@ -133,8 +105,15 @@ export default {
   text-align: center;
 }
 
+.form {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 67px;
+}
+
 .box {
   padding:50px;
+  max-width: 700px;
 }
 
 .btn-cadastre {
