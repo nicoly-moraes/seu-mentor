@@ -34,6 +34,7 @@ export default {
 .titulo {
   padding: 30px;
   margin-top: 30px;
+  font-family: 'Advent Pro';
 }
 
 .corpo-do-texto {
@@ -42,5 +43,9 @@ export default {
   margin-bottom: 40px;
   font-size: 20px;
   text-align: justify;
+  font-family: 'Advent Pro';
+  font-weight: 500;
 }
+
+
 </style>

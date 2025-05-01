@@ -34,13 +34,15 @@ export default {
 
 <style scoped>
 .titulo {
-  font-size: 20px;
+  font-size: 35px;
+  font-family: "Advent Pro";
   text-align: center;
   padding: 12px;
 }
 
 .principal {
   padding: 20px;
+  font-family: 'Advent Pro';
 }
 
 .card {

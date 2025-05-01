@@ -103,6 +103,8 @@ export default {
 .titulo{
   padding: 20px;
   text-align: center;
+  font-family: 'Advent Pro';
+  font-size: 35px;
 }
 
 .form {
@@ -119,6 +121,7 @@ export default {
 .btn-cadastre {
   border-radius: 12px;
   border: 20px;
+  font-family: 'Advent Pro';
 }
 
 </style>

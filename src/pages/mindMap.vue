@@ -1,4 +1,5 @@
 <template>
+   <h1 class="titulo">Organize sua mentoria</h1>
   <div class="center-container">
     <a href="https://www.exemplo.com">
       <img src="@/assets/mindmental.jpg" alt="Descrição da imagem">
@@ -12,7 +13,17 @@ export default {
 }
 </script>
 
+
+
 <style scoped>
+
+.titulo {
+  font-size: 35px;
+  font-family: "Advent Pro";
+  text-align: center;
+  padding: 12px;
+}
+
 .center-container {
   display: flex;
   justify-content: center;

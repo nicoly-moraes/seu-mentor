@@ -71,8 +71,10 @@ export default {
   margin-top: 194px;
   text-align: center;
   font-size: 50px;
+  font-family: 'Advent Pro';
   color: #FFFFFF;
   text-shadow: 3px 3px 5px #888888;
+  font-weight: 500;
 }
 
 .info {
@@ -84,6 +86,8 @@ export default {
 .segundo-titulo {
   text-align: center;
   font-size: 25px;
+  font-family: 'Advent Pro';
+  font-weight: 600;
   padding: 30px;
 }
 
@@ -113,6 +117,8 @@ export default {
   width: 150px;
   height: 50px;
   font-size: 16px;
+  font-family: 'Advent Pro';
+  font-weight: 600;
 }
 
 </style>
