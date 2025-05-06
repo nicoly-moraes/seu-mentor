@@ -17,6 +17,9 @@
                 <v-list-item to="/aboutUs" link>
                   <v-list-item-title>Quem Somos</v-list-item-title>
                 </v-list-item>
+                <v-list-item to="/faq" link>
+                  <v-list-item-title>FAQ</v-list-item-title>
+                </v-list-item>
                 <v-list-item to="/discipline" link>
                   <v-list-item-title>Disciplinas</v-list-item-title>
                 </v-list-item>
