@@ -1,7 +1,7 @@
 <template>
   <div class="center-container">
-    <a href="https://www.exemplo.com">
-      <img src="@/assets/mindmental.jpg" alt="Descrição da imagem">
+    <a>
+      <img alt="Mapa mental" src="@/assets/mindmental.jpg">
     </a>
   </div>
 </template>
