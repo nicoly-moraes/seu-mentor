@@ -5,22 +5,30 @@
       xs="6"
       md="4"
       lg="3"
-      v-for="(_, index) in [].constructor(10)"
+      v-for="(_, index) in [].constructor(12)"
       :key="index"
     >
       <v-card
         class="card mx-auto"
         width="300"
+        variant="outlined"
       >
+        <v-card-title>
+          Disciplina
+        </v-card-title>
         <v-img
           height="200px"
           src="../assets/ads-img.png"
           cover
         ></v-img>
-
-        <v-card-title>
-          Disciplina
-        </v-card-title>
+        <div class="btn-card">
+          <v-btn class="btn" to="/cadastre">
+            Seja Mentor
+          </v-btn>
+          <v-btn class="btn" to="/cadastre">
+            Seja Mentorado
+          </v-btn>
+        </div>
       </v-card>
     </v-col>
   </v-row>
@@ -47,5 +55,21 @@ export default {
 
 .card {
   text-align: center;
+}
+
+.btn-card {
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn {
+  align-items: center;
+  border-radius: 12px;
+  background-color: #004AAD;
+  color: #FFFFFF;
+  font-size: 12px;
+  width: 120px;
 }
 </style>
