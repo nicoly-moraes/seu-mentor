@@ -73,6 +73,8 @@ export default {
   margin-top: 50px;
   padding: 30px;
   text-align: center;
+  font-family: 'Advent Pro';
+  font-size: 35px;
 }
 
 .form {
@@ -89,6 +91,7 @@ export default {
   margin-bottom: 10px;
   border-radius: 12px;
   border: 20px;
+  font-family: 'Advent Pro';
 }
 
 </style>
