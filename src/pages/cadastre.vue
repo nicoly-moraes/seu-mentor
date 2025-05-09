@@ -8,12 +8,12 @@
     <div class="box">
       <v-row>
           <v-col
-            cols="12"
+            cols="6"
           >
             <v-text-field
             v-model="nome"
             :rules="[validation.required]"
-            label="Nome Completo"
+            label="Nome"
             data-vv-name="nome"
             variant="solo-filled"
             required
@@ -21,7 +21,33 @@
           </v-col>
 
           <v-col
-            cols="12"
+            cols="6"
+          >
+            <v-text-field
+            v-model="sobreNome"
+            :rules="[validation.required]"
+            label="Sobrenome"
+            data-vv-name="sobreNome"
+            variant="solo-filled"
+            required
+            ></v-text-field>
+          </v-col>
+
+          <v-col
+            cols="6"
+          >
+            <v-text-field
+            v-model="cpf"
+            :rules="[validation.required, validation.cpf]"
+            label="CPF"
+            data-vv-name="cpf"
+            variant="solo-filled"
+            required
+            ></v-text-field>
+          </v-col>
+
+          <v-col
+            cols="6"
           >
             <v-text-field
             v-model="celular"
@@ -69,7 +95,7 @@
 </template>
 
 <script lang="ts">
-import { validarCelular, validarEmail } from "@/utils/validations.util";
+import { validarCelular, validarCPF, validarEmail } from "@/utils/validations.util";
 
 export default {
   name: "cadastre",
@@ -78,17 +104,19 @@ export default {
       nome: "",
       email: "",
       celular: "",
+      cpf: "",
       senha: "",
       validation: {
         required: (value: string) => !!value || "Campo é obrigatorio",
         email: (value: string) => validarEmail(value) || "Email inválido",
-        celular: (value: string) => validarCelular(value) || "Celular inválido"
+        celular: (value: string) => validarCelular(value) || "Celular inválido",
+        cpf: (value: string) => validarCPF(value) || "CPF inválido"
       }
     }
   },
   methods: {
     cadastrar() {
-      if(!this.nome || !this.email || !this.celular || !this.senha || !validarEmail(this.email)) {
+      if(!this.nome || !this.email || !this.celular || !this.senha || !validarEmail(this.email) || !this.cpf) {
         return;
       }
       console.log("🚀 ~ login realizado com sucesso:")
@@ -115,7 +143,7 @@ export default {
 
 .box {
   padding:50px;
-  max-width: 700px;
+  max-width: 800px;
 }
 
 .btn-cadastre {
