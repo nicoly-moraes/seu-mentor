@@ -33,6 +33,15 @@
         variant="solo-filled"
         required
         ></v-text-field>
+        <a
+          class="esqueci-senha text-caption text-decoration-none"
+          color="primary"
+          href="#"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          Esqueci minha senha
+        </a>
       </v-col>
 
       <v-col cols="12" class="text-center">
@@ -85,6 +94,9 @@ export default {
 
 .box {
   max-width: 450px;
+}
+
+.esqueci-senha {
 }
 
 .btn-entrar {
