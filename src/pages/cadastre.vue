@@ -43,6 +43,7 @@
             data-vv-name="cpf"
             variant="solo-filled"
             required
+            v-mask="'###.###.###-##'"
             ></v-text-field>
           </v-col>
 
@@ -56,6 +57,7 @@
             data-vv-name="celular"
             variant="solo-filled"
             required
+            v-mask="'(##)#####-####'"
             ></v-text-field>
           </v-col>
 
@@ -102,24 +104,32 @@ export default {
   data() {
     return {
       nome: "",
+      sobreNome: "",
       email: "",
       celular: "",
       cpf: "",
       senha: "",
       validation: {
-        required: (value: string) => !!value || "Campo é obrigatorio",
+        required: (value: string) => !!value || "Campo é obrigatório",
         email: (value: string) => validarEmail(value) || "Email inválido",
         celular: (value: string) => validarCelular(value) || "Celular inválido",
         cpf: (value: string) => validarCPF(value) || "CPF inválido"
       }
-    }
+    };
   },
   methods: {
     cadastrar() {
-      if(!this.nome || !this.email || !this.celular || !this.senha || !validarEmail(this.email) || !this.cpf) {
+      if (
+        !this.nome ||
+        !this.email ||
+        !this.celular ||
+        !this.senha ||
+        !validarEmail(this.email) ||
+        !this.cpf
+      ) {
         return;
       }
-      console.log("🚀 ~ login realizado com sucesso:")
+      console.log("🚀 ~ login realizado com sucesso");
     }
   }
 }

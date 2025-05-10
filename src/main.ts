@@ -7,6 +7,7 @@
 // Plugins
 import { registerPlugins } from '@/plugins'
 import { useAuthStore } from '@/stores/auth';
+import { mask } from "vue-the-mask";
 
 // Components
 import App from './App.vue'
@@ -17,6 +18,7 @@ import { createApp } from 'vue'
 import "./styles/main.css";
 
 const app = createApp(App)
+app.directive("mask", mask as any);
 
 registerPlugins(app)
 
