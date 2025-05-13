@@ -11,7 +11,7 @@
             cols="6"
           >
             <v-text-field
-            v-model="nome"
+            v-model="firstName"
             :rules="[validation.required]"
             label="Nome"
             data-vv-name="nome"
@@ -24,7 +24,7 @@
             cols="6"
           >
             <v-text-field
-            v-model="sobreNome"
+            v-model="lastName"
             :rules="[validation.required]"
             label="Sobrenome"
             data-vv-name="sobreNome"
@@ -51,7 +51,7 @@
             cols="6"
           >
             <v-text-field
-            v-model="celular"
+            v-model="phone"
             :rules="[validation.required, validation.celular]"
             label="Celular"
             data-vv-name="celular"
@@ -78,8 +78,8 @@
             cols="12"
           >
             <v-text-field
-            v-model="senha"
-            :rules="[validation.required]"
+            v-model="password"
+            :rules="[validation.required, validation.password]"
             type="password"
             label="Senha"
             data-vv-name="Senha"
@@ -98,38 +98,57 @@
 
 <script lang="ts">
 import { validarCelular, validarCPF, validarEmail } from "@/utils/validations.util";
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
 
 export default {
   name: "cadastre",
   data() {
     return {
-      nome: "",
-      sobreNome: "",
+      firstName: "",
+      lastName: "",
       email: "",
-      celular: "",
       cpf: "",
-      senha: "",
+      phone: "",
+      password: "",
       validation: {
         required: (value: string) => !!value || "Campo é obrigatório",
         email: (value: string) => validarEmail(value) || "Email inválido",
         celular: (value: string) => validarCelular(value) || "Celular inválido",
-        cpf: (value: string) => validarCPF(value) || "CPF inválido"
+        cpf: (value: string) => validarCPF(value) || "CPF inválido",
+        password: (value: string) => (value && value.length >= 8) || "A senha deve ter no mínimo 8 caracteres"
       }
     };
   },
   methods: {
-    cadastrar() {
+    async cadastrar() {
       if (
-        !this.nome ||
-        !this.email ||
-        !this.celular ||
-        !this.senha ||
-        !validarEmail(this.email) ||
-        !this.cpf
+        this.firstName &&
+        this.lastName &&
+        this.email &&
+        this.phone &&
+        this.password &&
+        this.cpf &&
+        validarEmail(this.email) &&
+        validarCPF(this.cpf) &&
+        validarCelular(this.phone)
       ) {
-        return;
+      try {
+        const response = await authStore.register({
+          firstName: this.firstName,
+          lastName: this.lastName,
+          email: this.email,
+          cpf: this.cpf,
+          phone: this.phone,
+          password: this.password,
+        });
+        this.$router.push('/userArea');
+
+        } catch (error) {
+          console.error("❌ Erro ao cadastrar:", error);
+        }
       }
-      console.log("🚀 ~ login realizado com sucesso");
     }
   }
 }
