@@ -13,12 +13,12 @@ import { mask } from "vue-the-mask";
 import App from './App.vue'
 
 // Composables
-import { createApp } from 'vue'
+import { createApp, type Directive } from 'vue'
 
 import "./styles/main.css";
 
 const app = createApp(App)
-app.directive("mask", mask as any);
+app.directive("mask", mask as Directive);
 
 registerPlugins(app)
 
