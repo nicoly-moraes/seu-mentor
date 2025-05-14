@@ -43,8 +43,7 @@
 </template>
 
 <script lang="ts">
-import { resetPassword } from '@/services/authService'; // ✅ Corrigido
-import { useRouter } from 'vue-router';
+import { resetPassword } from '@/services/authService';
 
 export default {
   name: "resetPasswordForm",
@@ -56,6 +55,15 @@ export default {
         required: (value: string) => !!value || 'Campo é obrigatório',
       }
     };
+  },
+  mounted() {
+    const tokenFromURL = this.$route.query.token;
+    if (typeof tokenFromURL === 'string') {
+      this.token = tokenFromURL;
+      console.log('[resetPasswordForm] Token carregado da URL:', this.token);
+    } else {
+      console.warn('[resetPasswordForm] Token ausente na URL');
+    }
   },
   methods: {
     async redefinirSenha() {
