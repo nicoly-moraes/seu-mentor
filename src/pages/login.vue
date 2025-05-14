@@ -25,7 +25,7 @@
         cols="12"
       >
         <v-text-field
-        v-model="senha"
+        v-model="password"
         :rules="[validation.required]"
         type="password"
         label="Senha"
@@ -36,16 +36,15 @@
         <a
           class="esqueci-senha text-caption text-decoration-none"
           color="primary"
-          href="#"
+          href="forgotPassword"
           rel="noopener noreferrer"
-          target="_blank"
         >
           Esqueci minha senha
         </a>
       </v-col>
 
       <v-col cols="12" class="text-center">
-        <v-btn class="btn-entrar" color="primary" size="large" @click="logar">Entrar</v-btn>
+        <v-btn class="btn" color="primary" size="large" @click="logar">Entrar</v-btn>
       </v-col>
     </v-row>
   </v-form>
@@ -53,13 +52,16 @@
 
 <script lang="ts">
 import { validarEmail } from '@/utils/validations.util';
+import { useAuthStore } from '@/stores/auth';
+
+const authStore = useAuthStore();
 
 export default {
   name: "login",
   data() {
     return {
       email: "",
-      senha: "",
+      password: "",
       validation: {
         required: (value: string) => !!value || 'Campo é obrigatorio',
         email: (value: string) => validarEmail(value) || 'Email inválido'
@@ -67,11 +69,22 @@ export default {
     }
   },
   methods: {
-    logar() {
-      if(!this.email || !this.senha || !validarEmail(this.email)) {
-        return;
+    async logar() {
+      if (
+        this.email &&
+        this.password
+      ) {
+      try {
+        const response = await authStore.login({
+          email: this.email,
+          password: this.password,
+        });
+        this.$router.push('/userArea');
+
+        } catch (error) {
+          console.error("❌ Erro ao logar:", error);
+        }
       }
-      console.log("🚀 ~ login realizado com sucesso:")
     }
   }
 }
@@ -96,10 +109,7 @@ export default {
   max-width: 450px;
 }
 
-.esqueci-senha {
-}
-
-.btn-entrar {
+.btn {
   margin-bottom: 10px;
   border-radius: 12px;
   border: 20px;
