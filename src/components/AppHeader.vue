@@ -5,7 +5,7 @@
         <div class="d-flex align-center ga-2">
           <img src="../assets/logo.png" alt="Logo" class="logo" />
 
-          <v-btn color="primary">
+          <v-btn color="primary" title="Explorar">
             Explorar
             <v-icon icon="mdi-chevron-down"></v-icon>
 
@@ -45,8 +45,8 @@
         </div>
 
         <div class="nav-right">
-          <v-btn class="btn-cadastre text-primary" variant="text" to="/cadastre">Cadastre-se</v-btn>
-          <v-btn class="btn-login" color="primary" variant="flat" to="/login">Entrar</v-btn>
+          <v-btn class="btn-cadastre text-primary" variant="text" to="/cadastre" title="Cadastre-se">Cadastre-se</v-btn>
+          <v-btn class="btn-login" color="primary" variant="flat" to="/login" title="Entrar">Entrar</v-btn>
         </div>
 
         <div class="nav-right-mobile">
