@@ -23,6 +23,7 @@ declare module 'vue-router/auto-routes' {
     '/authAPITest': RouteRecordInfo<'/authAPITest', '/authAPITest', Record<never, never>, Record<never, never>>,
     '/cadastre': RouteRecordInfo<'/cadastre', '/cadastre', Record<never, never>, Record<never, never>>,
     '/discipline': RouteRecordInfo<'/discipline', '/discipline', Record<never, never>, Record<never, never>>,
+    '/disciplineTest': RouteRecordInfo<'/disciplineTest', '/disciplineTest', Record<never, never>, Record<never, never>>,
     '/faq': RouteRecordInfo<'/faq', '/faq', Record<never, never>, Record<never, never>>,
     '/forgotPassword': RouteRecordInfo<'/forgotPassword', '/forgotPassword', Record<never, never>, Record<never, never>>,
     '/login': RouteRecordInfo<'/login', '/login', Record<never, never>, Record<never, never>>,
