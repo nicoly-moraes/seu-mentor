@@ -10,8 +10,18 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./components/AppFooter.vue')['default']
     AppHeader: typeof import('./components/AppHeader.vue')['default']
+    CancelTutoringDialog: typeof import('./components/profile/CancelTutoringDialog.vue')['default']
+    EditMentoringSessionDialog: typeof import('./components/profile/EditMentoringSessionDialog.vue')['default']
     MentoriaCard: typeof import('./components/MentoriaCard.vue')['default']
+    MentoriaConfirmationDialog: typeof import('./components/profile/MentoriaConfirmationDialog.vue')['default']
+    ProfileSectionConta: typeof import('./components/profile/ProfileSectionConta.vue')['default']
+    ProfileSectionDisponibilidades: typeof import('./components/profile/ProfileSectionDisponibilidades.vue')['default']
+    ProfileSectionInicio: typeof import('./components/profile/ProfileSectionInicio.vue')['default']
+    ProfileSectionMentoriasMentor: typeof import('./components/profile/ProfileSectionMentoriasMentor.vue')['default']
+    ProfileSectionMentoriasMentorado: typeof import('./components/profile/ProfileSectionMentoriasMentorado.vue')['default']
+    ProfileSectionPerfil: typeof import('./components/profile/ProfileSectionPerfil.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    UserProfileSidebar: typeof import('./components/profile/UserProfileSidebar.vue')['default']
   }
 }
