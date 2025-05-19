@@ -8,22 +8,22 @@ export const getUserData = (id) => {
 
 // GET /api/v1/users/{userId}/mentor_availability: mostra todos os horários disponíveis do usuário mentor
 export const getMentorAvailability = (userId) => {
-  return apiClient.get(`/users/${userId}/mentor_availability`);
+  return apiClient.get(`tutoring/mentors/${userId}/availabilities`);
 };
 
 // GET /api/v1/users/{id}/participation-sessions: mostra todas as mentorias que o usuário participa
 export const getUserParticipationSessions = (id) => {
-  return apiClient.get(`/users/${id}/participation-sessions`);
+  return apiClient.get(`/tutoring/${id}/participation-sessions`);
 };
 
 // GET /api/v1/users/{id}/mentoring-sessions: mostra todas as mentorias que ele é mentor
 export const getUserMentoringSessions = (id) => {
-  return apiClient.get(`/users/${id}/mentoring-sessions`);
+  return apiClient.get(`/tutoring/${id}/mentoring-sessions`);
 };
 
 // POST /api/v1/users/{userId}/mentor: marca um horário de disponibilidade para ser mentor
 export const addMentorAvailability = (userId, availabilityData) => {
-  return apiClient.post(`/users/${userId}/mentor`, availabilityData);
+  return apiClient.post(`tutoring/mentors/${userId}/availabilities`, availabilityData);
 };
 
 // POST /api/v1/users/{id}/change-password: troca senha do usuario
@@ -43,7 +43,7 @@ export const updateAvailabilityStatus = (
   statusData
 ) => {
   return apiClient.patch(
-    `/users/${userId}/availabilities/${availabilityId}/status`,
+    `tutoring/mentors/${userId}/availabilities/${availabilityId}/status`,
     statusData
   );
 };
@@ -55,7 +55,7 @@ export const confirmTutoringSession = (sessionId, confirmationData) => {
 
 // DELETE /api/v1/users/{userId}/availabilities/{availabilityId}: deleta uma disponibilidade
 export const deleteAvailability = (userId, availabilityId) => {
-  return apiClient.delete(`/users/${userId}/availabilities/${availabilityId}`);
+  return apiClient.delete(`tutoring/mentors/${userId}/availabilities/${availabilityId}`);
 };
 
 // DELETE /api/v1/tutoring/{tutoringId}/participants/{userId}: remove um participante de uma mentoria
