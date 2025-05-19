@@ -56,8 +56,11 @@
             </template>
             <v-card class="info-authenticated">
               <v-list>
-                <v-list-item class="text-primary" to="/profile" link>
+                <v-list-item class="text-primary" to="/perfil" link>
                   <v-list-item-title>Perfil</v-list-item-title>
+                </v-list-item>
+                <v-list-item class="text-primary" to="/userArea" link>
+                  <v-list-item-title>Mentoria</v-list-item-title>
                 </v-list-item>
                 <v-list-item class="text-red" @click="logout">
                   <v-list-item-title>Sair</v-list-item-title>
@@ -101,8 +104,11 @@
             </template>
             <v-card class="info-authenticated">
               <v-list>
-                <v-list-item class="text-primary" to="/profile" link>
+                <v-list-item class="text-primary" to="/perfil" link>
                   <v-list-item-title>Perfil</v-list-item-title>
+                </v-list-item>
+                <v-list-item class="text-primary" to="/userArea" link>
+                  <v-list-item-title>Mentoria</v-list-item-title>
                 </v-list-item>
                 <v-list-item class="text-red" @click="logout">
                   <v-list-item-title>Sair</v-list-item-title>
