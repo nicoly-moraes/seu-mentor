@@ -44,12 +44,30 @@
           ></v-text-field>
         </div>
 
-        <div class="nav-right">
+        <div class="nav-right" v-if="!isAuthenticated">
           <v-btn class="btn-cadastre text-primary" variant="text" to="/cadastre" title="Cadastre-se">Cadastre-se</v-btn>
           <v-btn class="btn-login" color="primary" variant="flat" to="/login" title="Entrar">Entrar</v-btn>
         </div>
 
-        <div class="nav-right-mobile">
+        <div class="nav-right" v-else>
+          <v-menu location="bottom end" class="info-list">
+            <template v-slot:activator="{ props }">
+              <v-btn v-bind="props" icon="mdi-account" size="large" rounded="circle"></v-btn>
+            </template>
+            <v-card class="info-authenticated">
+              <v-list>
+                <v-list-item class="text-primary" to="/profile" link>
+                  <v-list-item-title>Perfil</v-list-item-title>
+                </v-list-item>
+                <v-list-item class="text-red" @click="logout">
+                  <v-list-item-title>Sair</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-card>
+          </v-menu>
+        </div>
+
+        <div class="nav-right-mobile" v-if="!isAuthenticated">
           <v-menu
             v-model="menu"
             location="bottom"
@@ -75,7 +93,26 @@
             </v-card>
           </v-menu>
         </div>
+
+        <div class="nav-right-mobile" v-else>
+          <v-menu location="bottom end" class="info-list">
+            <template v-slot:activator="{ props }">
+              <v-btn v-bind="props" icon="mdi-account" size="large" rounded="circle"></v-btn>
+            </template>
+            <v-card class="info-authenticated">
+              <v-list>
+                <v-list-item class="text-primary" to="/profile" link>
+                  <v-list-item-title>Perfil</v-list-item-title>
+                </v-list-item>
+                <v-list-item class="text-red" @click="logout">
+                  <v-list-item-title>Sair</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-card>
+          </v-menu>
+        </div>
       </div>
+
       <div class="search-mobile">
         <v-text-field
           density="compact"
@@ -92,13 +129,31 @@
 </template>
 
 <script lang="ts">
+import { useAuthStore } from '@/stores/auth';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
+
 export default {
-  name: "AppHeader",
+  name: "AppHeader", // Se você tiver outros componentes sendo usados aqui
   data() {
     return {
-      menu: false
-    }
-  }
+      menu: false,
+    };
+  },
+  computed: {
+    isAuthenticated() {
+      const authStore = useAuthStore();
+      return authStore.isAuthenticated;
+    },
+  },
+  methods: {
+    logout() {
+      const authStore = useAuthStore();
+      const router = useRouter();
+      authStore.logout();
+      router.push('/login');
+    },
+  },
 };
 </script>
 
@@ -110,6 +165,10 @@ export default {
 
 .info-list {
   text-align: center;
+}
+
+.info-authenticated {
+  width: 100px;
 }
 
 .search {
