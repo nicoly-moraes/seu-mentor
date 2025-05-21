@@ -83,3 +83,13 @@ export const cancelMentorTutoringSession = (
     }
   );
 };
+// GET /api/v1/tutoring/available-sessions: mostra todas as mentorias disponíveis para participação
+export const getAvailableTutoringSessions = (userId) => {
+  return apiClient.get(`/${userId}/tutoring/available-sessions`); // OU a rota real da sua API para mentorias disponíveis
+};
+
+// POST /api/v1/tutoring/{tutoringId}/participants: Adiciona um participante a uma mentoria
+export const joinTutoringSession = (tutoringId, userId) => {
+  // Ajuste o payload conforme o que sua API espera para adicionar um participante
+  return apiClient.post(`/tutoring/${tutoringId}/participants`, { userId: userId });
+};
