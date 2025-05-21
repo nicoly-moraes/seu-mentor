@@ -79,7 +79,7 @@ export default {
           email: this.email,
           password: this.password,
         });
-        this.$router.push('/userArea');
+        this.$router.push('/perfil');
 
         } catch (error) {
           console.error("❌ Erro ao logar:", error);
