@@ -1,8 +1,23 @@
 <template>
   <div class="pa-4">
-    <h1 class="text-h4 mb-6 font-weight-bold">Minhas Mentorias como Mentorado</h1>
+    <h1 class="titulo text-h4 mb-6 font-weight-bold">Minhas Mentorias (Mentorado)</h1>
 
     <v-row>
+      <v-col
+          cols="12"
+          class="btn"
+      >
+        <v-btn
+          class="btn"
+          variant="flat"
+          color="primary"
+          append-icon="mdi mdi-plus"
+          to="/discipline"
+        >
+          Mentoria
+        </v-btn>
+      </v-col>
+
       <v-col cols="12">
         <v-card v-if="isLoadingParticipationSessions" class="text-center pa-6">
           <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -126,7 +141,7 @@ async function handleLeaveTutoring(tutoringId) {
 
   try {
     await leaveTutoringSession(tutoringId, userId);
-    emit('session-left', tutoringId); 
+    emit('session-left', tutoringId);
     emit('operation-success', "Você saiu da mentoria com sucesso!");
   } catch (error) {
     console.error(`Erro ao sair da mentoria ID ${tutoringId} para o usuário ID ${userId}:`, error);
@@ -165,8 +180,17 @@ async function handleLeaveTutoring(tutoringId) {
 </script>
 
 <style scoped>
+.titulo {
+  padding: 20px;
+  text-align: center;
+}
+
+.btn {
+  display: flex;
+  justify-content: end;
+}
 
 .v-card-actions .v-btn {
-  text-transform: none; 
+  text-transform: none;
 }
 </style>

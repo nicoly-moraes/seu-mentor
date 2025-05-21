@@ -1,6 +1,6 @@
 <template>
   <div class="pa-4">
-    <h1 class="text-h4 mb-6 font-weight-bold">Meu Perfil</h1>
+    <h1 class="titulo text-h4 mb-6 font-weight-bold">Meu Perfil</h1>
 
     <v-row>
       <v-col cols="12" md="4">
@@ -75,6 +75,7 @@
                     label="URL da Imagem de Perfil"
                     variant="outlined"
                     prepend-inner-icon="mdi-image"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -84,6 +85,7 @@
                     label="Telefone"
                     variant="outlined"
                     prepend-inner-icon="mdi-phone"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -94,6 +96,7 @@
                     label="Data de Nascimento"
                     variant="outlined"
                     prepend-inner-icon="mdi-calendar"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -103,6 +106,7 @@
                     label="Cidade"
                     variant="outlined"
                     prepend-inner-icon="mdi-city"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -112,6 +116,7 @@
                     label="Estado"
                     variant="outlined"
                     prepend-inner-icon="mdi-map-marker"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -121,6 +126,7 @@
                     label="País"
                     variant="outlined"
                     prepend-inner-icon="mdi-earth"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -130,6 +136,7 @@
                     label="Curso"
                     variant="outlined"
                     prepend-inner-icon="mdi-book-open-variant"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -139,6 +146,7 @@
                     label="Semestre"
                     variant="outlined"
                     prepend-inner-icon="mdi-calendar-clock"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
@@ -148,10 +156,27 @@
                     label="Universidade"
                     variant="outlined"
                     prepend-inner-icon="mdi-school"
+                    :disabled="!isEditing"
                   ></v-text-field>
                 </v-col>
 
-                <v-col cols="12" class="text-center">
+                <v-col
+                  cols="12"
+                  class="btn"
+                  v-if="!isEditing"
+                >
+                  <v-btn
+                    append-icon="mdi mdi-square-edit-outline"
+                    variant="text"
+                    size="small"
+                    color="primary"
+                    @click="isEditing = true"
+                  >
+                    Alterar dados
+                  </v-btn>
+                </v-col>
+
+                <v-col cols="12" class="text-center" v-if="isEditing">
                   <v-btn
                     type="submit"
                     color="primary"
@@ -189,6 +214,9 @@ const editableProfileForm = ref({
   country: '', courseName: '', semester: '', university: ''
 });
 
+// Nova variável de estado para controlar a visibilidade do botão "Atualizar Perfil"
+const isEditing = ref(false);
+
 // Initialize form and local user data when props are available/updated
 watch(() => props.userDataProp, (newVal) => {
   localUserData.value = newVal ? JSON.parse(JSON.stringify(newVal)) : null;
@@ -207,12 +235,19 @@ watch(() => props.initialProfileFormData, (newVal) => {
 
 
 const submitUpdateProfile = () => {
-  // The date from v-text-field type="date" is already YYYY-MM-DD
-  // If your API expects DD/MM/YYYY, you'd convert it here before emitting.
-  // Assuming API handles YYYY-MM-DD or the parent will format it.
   emit('update-profile', { ...editableProfileForm.value });
+  isEditing.value = false; // Opcional: Oculta o botão novamente após a submissão
 };
-
-// If parent emits 'profile-updated', this component could also react if needed,
-// but typically the parent would just refresh its own data which flows down.
 </script>
+
+<style scoped>
+.titulo {
+  padding: 20px;
+  text-align: center;
+}
+
+.btn {
+  display: flex;
+  justify-content: end;
+}
+</style>

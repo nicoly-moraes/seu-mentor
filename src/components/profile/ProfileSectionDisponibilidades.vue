@@ -1,6 +1,6 @@
 <template>
   <div class="pa-4">
-    <h1 class="text-h4 mb-6 font-weight-bold">Minhas Disponibilidades</h1>
+    <h1 class="titulo text-h4 mb-6 font-weight-bold">Minhas Disponibilidades</h1>
 
     <v-row>
       <v-col cols="12">
@@ -83,12 +83,13 @@
             </v-form>
           </v-card-text>
         </v-card>
-
+        <v-card>
+          <h2 class="lista-disponibilidade">Minha lista de Disponibilidades</h2>
+        </v-card>
         <v-card v-if="isLoadingAvailabilitiesProp" class="text-center pa-6">
           <v-progress-circular indeterminate color="primary"></v-progress-circular>
           <p class="mt-2">Carregando suas disponibilidades...</p>
         </v-card>
-
         <template v-else-if="mentorAvailabilitiesProp.length > 0">
           <v-card
             v-for="availability in mentorAvailabilitiesProp"
@@ -169,12 +170,12 @@ const props = defineProps({
   tiposTutoriaProp: { type: Array, required: true },
 });
 
-const emit = defineEmits(['add-availability', 'toggle-availability-status', 'delete-availability']); 
+const emit = defineEmits(['add-availability', 'toggle-availability-status', 'delete-availability']);
 
 const localFormErrorMessage = ref('');
 
 const localNewAvailabilityForm = ref({
-  disciplineId: null, 
+  disciplineId: null,
   dayOfWeek: 'SEGUNDA_FEIRA',
   startTime: '09:00',
   endTime: '10:00',
@@ -228,7 +229,7 @@ const submitAddAvailability = async () => {
       formErrors.disciplineId = "Disciplina inválida ou não selecionada.";
       return;
   }
-  
+
   payload.disciplineId = Number(selectedDisciplineIdValue);
 
   if (isNaN(payload.disciplineId)) {
@@ -258,3 +259,15 @@ defineExpose({
 });
 
 </script>
+
+<style scoped>
+.titulo {
+  padding: 20px;
+  text-align: center;
+}
+
+.lista-disponibilidade {
+  padding: 20px;
+  text-align: center;
+}
+</style>

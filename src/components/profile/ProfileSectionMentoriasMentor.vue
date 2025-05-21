@@ -1,3 +1,125 @@
+<template>
+  <div class="pa-4">
+    <h1 class="titulo text-h4 mb-6 font-weight-bold">Minhas Mentorias (Mentor)</h1>
+
+    <v-row>
+      <v-col cols="12">
+        <v-card v-if="isLoadingMentoringSessionsAsMentor" class="text-center pa-6">
+          <v-progress-circular indeterminate color="primary"></v-progress-circular>
+          <p class="mt-2">Carregando suas mentorias...</p>
+        </v-card>
+
+        <template v-else-if="mentoringSessionsAsMentor.length > 0">
+          <v-card
+            v-for="session in mentoringSessionsAsMentor"
+            :key="session.id"
+            class="mb-4"
+            elevation="2"
+          >
+            <v-card-title class="d-flex justify-space-between align-center">
+              <div>
+                <span class="text-h6">{{ session.disciplineName }}</span>
+                <v-chip
+                  :color="props.getStatusColor(session.status)"
+                  size="small"
+                  class="ml-2"
+                  label
+                >
+                  {{ session.status }}
+                </v-chip>
+              </div>
+              <div class="d-flex align-center">
+                <v-chip size="small" :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'" class="mr-2" label>
+                  {{ session.tutoringClassType }}
+                </v-chip>
+                <v-btn
+                  color="primary"
+                  variant="tonal"
+                  size="small"
+                  @click="openEditSessionDialog(session)"
+                  prepend-icon="mdi-pencil-outline"
+                  :disabled="isSessionSaving === session.id || isSessionCancelling === session.id"
+                  class="mr-2"
+                >
+                  Editar Detalhes
+                </v-btn>
+                <v-btn
+                  v-if="canCancelSession(session.status)"
+                  color="error"
+                  variant="tonal"
+                  size="small"
+                  @click="openCancelSessionDialog(session)"
+                  prepend-icon="mdi-cancel"
+                  :disabled="isSessionSaving === session.id || isSessionCancelling === session.id"
+                >
+                  Cancelar Mentoria
+                </v-btn>
+              </div>
+            </v-card-title>
+
+            <v-card-text>
+              <v-row>
+                <v-col cols="12" md="6">
+                  <p><v-icon small class="mr-1">mdi-calendar-blank-outline</v-icon> <strong>Data:</strong> {{ props.formatDate(session.tutoringDate) }}</p>
+                  <p><v-icon small class="mr-1">mdi-clock-outline</v-icon> <strong>Horário:</strong> {{ session.startTime }} - {{ session.endTime }}</p>
+                  <p v-if="session.local"><v-icon small class="mr-1">mdi-map-marker-outline</v-icon> <strong>Local:</strong> {{ session.local }}</p>
+                  <p v-if="session.linkVideo">
+                    <v-icon small class="mr-1">mdi-video-outline</v-icon>
+                    <strong>Link:</strong>
+                    <a :href="session.linkVideo" target="_blank" rel="noopener noreferrer" class="text-decoration-none">Acessar aula</a>
+                  </p>
+                </v-col>
+                <v-col cols="12" md="6">
+                  <p><v-icon small class="mr-1">mdi-account-group-outline</v-icon> <strong>Máx. Participantes:</strong> {{ session.maxParticipants }}</p>
+                  <p><v-icon small class="mr-1">mdi-chat-processing-outline</v-icon> <strong>Chat:</strong> {{ session.isChatEnable ? 'Habilitado' : 'Desabilitado' }}</p>
+                  <div v-if="session.participants && session.participants.length > 0" class="mt-2">
+                    <p><strong>Participantes Inscritos ({{ session.participants.length }}):</strong></p>
+                    <v-list density="compact" lines="one" class="py-0">
+                      <v-list-item
+                        v-for="p in session.participants"
+                        :key="p.userId"
+                        :title="p.userName"
+                        :subtitle="p.topic ? `Tópico: ${p.topic}` : 'Tópico não especificado'"
+                        prepend-icon="mdi-account-circle-outline"
+                        class="px-1"
+                      ></v-list-item>
+                    </v-list>
+                  </div>
+                  <p v-else class="mt-2 text-medium-emphasis"><em>Nenhum participante inscrito.</em></p>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </template>
+
+        <v-card v-else class="text-center pa-6">
+          <v-icon size="x-large" color="grey-lighten-1" class="mb-3">mdi-information-outline</v-icon>
+          <p class="text-h6 text-medium-emphasis">Você não tem nenhuma mentoria agendada como mentor.</p>
+          <v-btn color="primary" class="mt-4" @click="$emit('activate-disponibilidades')" append-icon="mdi-calendar-plus">Gerenciar Disponibilidades</v-btn>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <EditMentoringSessionDialog
+      :visible="isEditDialogVisible"
+      :editing-session="sessionToEdit"
+      :loading="isSessionSaving === sessionToEdit?.id"
+      @update:visible="isEditDialogVisible = $event"
+      @save="handleSaveSessionDetails"
+      @close="closeEditSessionDialog"
+    />
+
+    <CancelTutoringDialog
+      :visible="isCancelDialogVisible"
+      :session-name="sessionToCancel?.disciplineName"
+      :loading="isSessionCancelling === sessionToCancel?.id"
+      @update:visible="isCancelDialogVisible = $event"
+      @confirm-cancel="handleConfirmCancellation"
+      @close="closeCancelSessionDialog"
+    />
+  </div>
+</template>
+
 <script setup>
 import { ref } from 'vue';
 // Make sure the path to userService and the dialogs are correct
@@ -142,124 +264,9 @@ function canCancelSession(status) {
 
 </script>
 
-<template>
-  <div class="pa-4">
-    <h1 class="text-h4 mb-6 font-weight-bold">Minhas Mentorias como Mentor</h1>
-
-    <v-row>
-      <v-col cols="12">
-        <v-card v-if="isLoadingMentoringSessionsAsMentor" class="text-center pa-6">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-          <p class="mt-2">Carregando suas mentorias...</p>
-        </v-card>
-
-        <template v-else-if="mentoringSessionsAsMentor.length > 0">
-          <v-card
-            v-for="session in mentoringSessionsAsMentor"
-            :key="session.id"
-            class="mb-4"
-            elevation="2"
-          >
-            <v-card-title class="d-flex justify-space-between align-center">
-              <div>
-                <span class="text-h6">{{ session.disciplineName }}</span>
-                <v-chip
-                  :color="props.getStatusColor(session.status)"
-                  size="small"
-                  class="ml-2"
-                  label
-                >
-                  {{ session.status }}
-                </v-chip>
-              </div>
-              <div class="d-flex align-center">
-                <v-chip size="small" :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'" class="mr-2" label>
-                  {{ session.tutoringClassType }}
-                </v-chip>
-                <v-btn
-                  color="primary"
-                  variant="tonal"
-                  size="small"
-                  @click="openEditSessionDialog(session)"
-                  prepend-icon="mdi-pencil-outline"
-                  :disabled="isSessionSaving === session.id || isSessionCancelling === session.id"
-                  class="mr-2"
-                >
-                  Editar Detalhes
-                </v-btn>
-                <v-btn
-                  v-if="canCancelSession(session.status)"
-                  color="error"
-                  variant="tonal"
-                  size="small"
-                  @click="openCancelSessionDialog(session)"
-                  prepend-icon="mdi-cancel"
-                  :disabled="isSessionSaving === session.id || isSessionCancelling === session.id"
-                >
-                  Cancelar Mentoria
-                </v-btn>
-              </div>
-            </v-card-title>
-
-            <v-card-text>
-              <v-row>
-                <v-col cols="12" md="6">
-                  <p><v-icon small class="mr-1">mdi-calendar-blank-outline</v-icon> <strong>Data:</strong> {{ props.formatDate(session.tutoringDate) }}</p>
-                  <p><v-icon small class="mr-1">mdi-clock-outline</v-icon> <strong>Horário:</strong> {{ session.startTime }} - {{ session.endTime }}</p>
-                  <p v-if="session.local"><v-icon small class="mr-1">mdi-map-marker-outline</v-icon> <strong>Local:</strong> {{ session.local }}</p>
-                  <p v-if="session.linkVideo">
-                    <v-icon small class="mr-1">mdi-video-outline</v-icon>
-                    <strong>Link:</strong>
-                    <a :href="session.linkVideo" target="_blank" rel="noopener noreferrer" class="text-decoration-none">Acessar aula</a>
-                  </p>
-                </v-col>
-                <v-col cols="12" md="6">
-                  <p><v-icon small class="mr-1">mdi-account-group-outline</v-icon> <strong>Máx. Participantes:</strong> {{ session.maxParticipants }}</p>
-                  <p><v-icon small class="mr-1">mdi-chat-processing-outline</v-icon> <strong>Chat:</strong> {{ session.isChatEnable ? 'Habilitado' : 'Desabilitado' }}</p>
-                  <div v-if="session.participants && session.participants.length > 0" class="mt-2">
-                    <p><strong>Participantes Inscritos ({{ session.participants.length }}):</strong></p>
-                    <v-list density="compact" lines="one" class="py-0">
-                      <v-list-item
-                        v-for="p in session.participants"
-                        :key="p.userId"
-                        :title="p.userName"
-                        :subtitle="p.topic ? `Tópico: ${p.topic}` : 'Tópico não especificado'"
-                        prepend-icon="mdi-account-circle-outline"
-                        class="px-1"
-                      ></v-list-item>
-                    </v-list>
-                  </div>
-                  <p v-else class="mt-2 text-medium-emphasis"><em>Nenhum participante inscrito.</em></p>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-        </template>
-
-        <v-card v-else class="text-center pa-6">
-          <v-icon size="x-large" color="grey-lighten-1" class="mb-3">mdi-information-outline</v-icon>
-          <p class="text-h6 text-medium-emphasis">Você não tem nenhuma mentoria agendada como mentor.</p>
-          <v-btn color="primary" class="mt-4" @click="$emit('activate-disponibilidades')" append-icon="mdi-calendar-plus">Gerenciar Disponibilidades</v-btn>
-        </v-card>
-      </v-col>
-    </v-row>
-
-    <EditMentoringSessionDialog
-      :visible="isEditDialogVisible"
-      :editing-session="sessionToEdit"
-      :loading="isSessionSaving === sessionToEdit?.id"
-      @update:visible="isEditDialogVisible = $event"
-      @save="handleSaveSessionDetails"
-      @close="closeEditSessionDialog"
-    />
-
-    <CancelTutoringDialog
-      :visible="isCancelDialogVisible"
-      :session-name="sessionToCancel?.disciplineName"
-      :loading="isSessionCancelling === sessionToCancel?.id"
-      @update:visible="isCancelDialogVisible = $event"
-      @confirm-cancel="handleConfirmCancellation"
-      @close="closeCancelSessionDialog"
-    />
-  </div>
-</template>
+<style scoped>
+.titulo {
+  text-align: center;
+  padding: 20px;
+}
+</style>

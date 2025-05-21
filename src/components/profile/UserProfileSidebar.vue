@@ -51,8 +51,3 @@ defineProps({
 
 defineEmits(['update:activeSection']);
 </script>
-
-<style scoped>
-/* Styles specific to the sidebar card, if any, were already in UserProfilePage.vue */
-/* .profile-sidebar-card and .h-100 are general, so kept them in parent for now or make global */
-</style>

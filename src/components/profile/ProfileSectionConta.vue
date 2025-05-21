@@ -1,9 +1,9 @@
 <template>
   <div class="pa-4">
-    <h1 class="text-h4 mb-6 font-weight-bold">Gerenciamento de Conta</h1>
+    <h1 class="titulo text-h4 mb-6 font-weight-bold">Gerenciamento de Conta</h1>
 
-    <v-row>
-      <v-col cols="12" md="6">
+    <v-row class="box">
+      <v-col cols="12">
         <v-card class="mb-4" elevation="2">
           <v-card-title class="text-h6 font-weight-bold">
             <v-icon class="mr-2">mdi-lock</v-icon>
@@ -44,7 +44,7 @@
         </v-card>
       </v-col>
 
-      <v-col cols="12" md="6">
+      <v-col cols="12">
         <v-card class="mb-4" elevation="2" color="error-lighten-5" border="error">
           <v-card-title class="text-h6 font-weight-bold text-error">
             <v-icon class="mr-2" color="error">mdi-alert-circle</v-icon>
@@ -102,3 +102,15 @@ const confirmAndDeleteAccount = () => {
   emit('delete-account');
 };
 </script>
+
+<style scoped>
+.titulo {
+  padding: 20px;
+  text-align: center;
+}
+
+.box {
+  width: 950px;
+  justify-self: center;
+}
+</style>

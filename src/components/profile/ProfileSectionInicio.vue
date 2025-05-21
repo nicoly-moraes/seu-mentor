@@ -1,13 +1,13 @@
 <template>
   <div class="pa-4">
-    <h1 class="text-h4 mb-6 font-weight-bold">Painel de Mentorias</h1>
+    <h1 class="titulo text-h4 mb-6 font-weight-bold">Painel de Mentorias</h1>
 
     <v-row>
       <v-col cols="12" md="6">
         <v-card class="mb-4" elevation="2">
           <v-card-title class="text-h5 font-weight-bold primary">
             <v-icon class="mr-2">mdi-teach</v-icon>
-            Como Mentor
+            Mentor
           </v-card-title>
 
           <v-card-text class="pa-0">
@@ -63,7 +63,7 @@
         <v-card class="mb-4" elevation="2">
           <v-card-title class="text-h5 font-weight-bold primary">
             <v-icon class="mr-2">mdi-school</v-icon>
-            Como Mentorado
+            Mentorado
           </v-card-title>
 
           <v-card-text class="pa-0">
@@ -124,4 +124,8 @@ defineEmits(['open-confirmation-form']);
 </script>
 
 <style scoped>
+.titulo {
+  padding: 20px;
+  text-align: center;
+}
 </style>
