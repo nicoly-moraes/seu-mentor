@@ -143,7 +143,7 @@ export default {
           phone: this.phone,
           password: this.password,
         });
-        this.$router.push('/userArea');
+        this.$router.push('/perfil');
 
         } catch (error) {
           console.error("❌ Erro ao cadastrar:", error);
