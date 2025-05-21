@@ -6,19 +6,15 @@
       md="4"
       lg="3"
       v-for="(disciplina, index) in disciplines"
-        :key="index"
+      :key="index"
     >
-      <v-card
-        class="card mx-auto"
-        width="300"
-        variant="outlined"
-      >
+      <v-card class="card mx-auto" width="300" variant="outlined">
         <v-card-title class="card-titulo">
           {{ disciplina.disciplineName }}
         </v-card-title>
         <v-card-subtitle class="card-subtitulo">
-            Área: {{ disciplina.courseName }}
-          </v-card-subtitle>
+          Área: {{ disciplina.courseName }}
+        </v-card-subtitle>
         <v-img
           height="200px"
           src="../assets/ads-img.png"
@@ -27,14 +23,14 @@
         ></v-img>
 
         <v-card-text class="descricao" :title="disciplina.description">
-            {{ disciplina.description }}
-          </v-card-text>
+          {{ disciplina.description }}
+        </v-card-text>
 
         <div class="btn-card">
-          <v-btn class="btn" to="/cadastre" title="Seja Mentor">
+          <v-btn class="btn" :to="mentorButtonRoute" title="Seja Mentor">
             Seja Mentor
           </v-btn>
-          <v-btn class="btn" to="/cadastre" title="Seja Mentorado">
+          <v-btn class="btn" :to="mentoredButtonRoute" title="Seja Mentorado">
             Seja Mentorado
           </v-btn>
         </div>
@@ -45,15 +41,29 @@
 
 <script lang="ts">
 import { getAllDisciplines } from '@/services/disciplineService';
+import { useAuthStore } from '@/stores/auth';
 
 export default {
   name: "discipline",
-    data() {
+  data() {
     return {
       disciplines: [] as Discipline[],
       loading: false,
       error: null as string | null,
     };
+  },
+  computed: {
+    // Computa a rota para o botão "Seja Mentor"
+    mentorButtonRoute(): string {
+      const authStore = useAuthStore(); // Acessa o store de autenticação
+      return authStore.isAuthenticated ? '/perfil' : '/cadastre';
+    },
+    // Computa a rota para o botão "Seja Mentorado"
+    mentoredButtonRoute(): string {
+      const authStore = useAuthStore(); // Acessa o store de autenticação
+      // Ajuste '/agendamento' para a rota real da página de agendamento de mentorias
+      return authStore.isAuthenticated ? '/agendamento' : '/cadastre';
+    },
   },
   mounted() {
     this.fetchDisciplines();
@@ -88,7 +98,6 @@ interface Discipline {
   courseAreaId: number;
   courseName: string;
 }
-
 </script>
 
 <style scoped>
