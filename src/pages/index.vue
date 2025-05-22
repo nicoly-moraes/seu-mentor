@@ -5,48 +5,45 @@
   <div class="info">
     <p class="segundo-titulo">Escolha o seu papel</p>
     <v-row>
-      <v-col
-        cols="12"
-        md="6"
-        class="colum"
-      >
-        <v-card
-          class="card mx-auto"
-          max-width="344"
-        >
-          <v-img
-            height="100%"
-            src="../assets/img-mentor.png"
-            cover
-          ></v-img>
+      <v-col cols="12" md="6" class="colum">
+        <v-card class="card mx-auto" max-width="344">
+          <v-img height="100%" src="../assets/img-mentor.png" cover></v-img>
         </v-card>
-        <v-btn class="btn-cadastro" color="primary" size="large" to="/cadastre">Mentor</v-btn>
+        <v-btn class="btn-cadastro" color="primary" size="large" :to="mentorButtonRoute">Mentor</v-btn>
       </v-col>
-      <v-col
-        cols="12"
-        md="6"
-        class="colum"
-      >
-        <v-card
-          class="card mx-auto"
-          max-width="344"
-        >
-          <v-img
-            height="100%"
-            src="../assets/img-mentorado.png"
-            cover
-          ></v-img>
+      <v-col cols="12" md="6" class="colum">
+        <v-card class="card mx-auto" max-width="344">
+          <v-img height="100%" src="../assets/img-mentorado.png" cover></v-img>
         </v-card>
-        <v-btn class="btn-cadastro" color="primary" size="large" to="/cadastre">Mentorado</v-btn>
+        <v-btn class="btn-cadastro" color="primary" size="large" :to="mentoredButtonRoute">Mentorado</v-btn>
       </v-col>
     </v-row>
   </div>
 </template>
 
 <script lang="ts">
-export default {
+import { defineComponent, computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+
+export default defineComponent({
   name: "index",
-}
+  setup() {
+    const authStore = useAuthStore();
+
+    const mentorButtonRoute = computed(() => {
+      return authStore.isAuthenticated ? '/perfil' : '/cadastre';
+    });
+
+    const mentoredButtonRoute = computed(() => {
+      return authStore.isAuthenticated ? '/agendamento' : '/cadastre';
+    });
+
+    return {
+      mentorButtonRoute,
+      mentoredButtonRoute,
+    };
+  },
+});
 </script>
 
 <style scoped>
@@ -98,6 +95,9 @@ export default {
 }
 
 .colum {
+  display: flex; /* Adicionado para centralizar o botão */
+  flex-direction: column; /* Adicionado para empilhar card e botão */
+  align-items: center; /* Centraliza horizontalmente */
   justify-items: center;
 }
 
@@ -113,12 +113,10 @@ export default {
   border-radius: 12px;
   margin-bottom: 30px;
   margin-top: 20px;
-  justify-content: center;
   width: 150px;
   height: 50px;
   font-size: 16px;
   font-family: 'Advent Pro';
   font-weight: 600;
 }
-
 </style>
