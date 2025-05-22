@@ -224,22 +224,7 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      :timeout="snackbar.timeout"
-    >
-      {{ snackbar.text }}
-      <template v-slot:actions>
-        <v-btn
-          variant="text"
-          @click="snackbar.show = false"
-        >
-          Fechar
-        </v-btn>
-      </template>
-    </v-snackbar>
-  </v-container>
+    </v-container>
 </template>
 
 <script setup>
@@ -248,6 +233,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { getAllDisciplines } from '@/services/disciplineService';
 import { getAvailableTutoringSessions, joinTutoringSession } from '@/services/userService';
+import { showSnackbar } from '@/components/AppSnackbar.vue'; // Importa a função showSnackbar global
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -261,12 +247,8 @@ const datasSelecionadas = ref([]);
 const agendando = ref(false);
 const dialogConfirmacao = ref(false);
 const topicoMentoria = ref('');
-const snackbar = ref({
-  show: false,
-  text: '',
-  color: 'success',
-  timeout: 3000
-});
+
+// O snackbar reativo local foi removido, agora usamos o global
 
 // Filtros
 const filtros = ref({
@@ -322,6 +304,8 @@ const podeAgendar = computed(() => {
 const buscarMentorias = async () => {
   if (!authStore.isAuthenticated) {
     router.push('/login');
+    // Usar o snackbar global aqui
+    showSnackbar('Você precisa estar logado para ver as mentorias.', 'warning');
     return;
   }
 
@@ -332,13 +316,14 @@ const buscarMentorias = async () => {
     // mentorias.value = response.data;
 
     // Dados simulados para demonstração
-    setTimeout(() => {
-      mentorias.value = gerarMentoriasSimuladas();
-      carregando.value = false;
-    }, 1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    mentorias.value = gerarMentoriasSimuladas();
+    // showSnackbar('Mentorias carregadas com sucesso!', 'success'); // Opcional: mostrar sucesso no carregamento
   } catch (error) {
     console.error('Erro ao buscar mentorias:', error);
-    mostrarMensagem('Erro ao carregar mentorias disponíveis.', 'error');
+    // Usar o snackbar global aqui
+    showSnackbar('Erro ao carregar mentorias disponíveis. Tente novamente mais tarde.', 'error');
+  } finally {
     carregando.value = false;
   }
 };
@@ -349,7 +334,8 @@ const buscarDisciplinas = async () => {
     disciplinas.value = response.data;
   } catch (error) {
     console.error('Erro ao buscar disciplinas:', error);
-    mostrarMensagem('Erro ao carregar lista de disciplinas.', 'error');
+    // Usar o snackbar global aqui
+    showSnackbar('Erro ao carregar lista de disciplinas.', 'error');
   }
 };
 
@@ -361,21 +347,29 @@ const limparFiltros = () => {
   filtros.value.disciplina = null;
   filtros.value.tipo = null;
   datasSelecionadas.value = [];
-  filtrarMentorias();
+  // Não precisamos chamar filtrarMentorias aqui, o computed fará isso.
+  showSnackbar('Filtros limpos!', 'info');
 };
 
 const filtrarMentorias = () => {
   // A filtragem é feita automaticamente pelo computed property
+  // Podemos adicionar um feedback visual se os filtros resultarem em 0 mentorias
+  if (mentoriasFiltradas.value.length === 0 && !carregando.value) {
+    // showSnackbar('Nenhuma mentoria encontrada com os filtros atuais.', 'info'); // Opcional
+  }
 };
 
 const agendarMentoria = () => {
   if (!authStore.isAuthenticated) {
     router.push('/login');
+    // Usar o snackbar global aqui
+    showSnackbar('Você precisa estar logado para agendar uma mentoria.', 'warning');
     return;
   }
 
   if (!mentoriaSelecionada.value) {
-    mostrarMensagem('Selecione uma mentoria para agendar.', 'warning');
+    // Usar o snackbar global aqui
+    showSnackbar('Selecione uma mentoria para agendar.', 'warning');
     return;
   }
 
@@ -383,7 +377,11 @@ const agendarMentoria = () => {
 };
 
 const confirmarAgendamento = async () => {
-  if (!mentoriaSelecionada.value || !authStore.userId) return;
+  if (!mentoriaSelecionada.value || !authStore.userId) {
+    // Usar o snackbar global aqui
+    showSnackbar('Erro interno: dados da mentoria ou usuário ausentes.', 'error');
+    return;
+  }
 
   agendando.value = true;
   try {
@@ -397,7 +395,8 @@ const confirmarAgendamento = async () => {
     // Simulação para demonstração
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    mostrarMensagem('Mentoria agendada com sucesso!', 'success');
+    // Usar o snackbar global aqui
+    showSnackbar('Mentoria agendada com sucesso! Verifique sua área de mentorias.', 'success', 5000); // Exibe por mais tempo
     dialogConfirmacao.value = false;
     mentoriaSelecionada.value = null;
     topicoMentoria.value = '';
@@ -406,7 +405,9 @@ const confirmarAgendamento = async () => {
     await buscarMentorias();
   } catch (error) {
     console.error('Erro ao agendar mentoria:', error);
-    mostrarMensagem('Erro ao agendar mentoria. Tente novamente.', 'error');
+    // Usar o snackbar global aqui
+    const errorMessage = error.response?.data?.message || 'Erro ao agendar mentoria. Tente novamente.';
+    showSnackbar(errorMessage, 'error', 5000); // Exibe por mais tempo
   } finally {
     agendando.value = false;
   }
@@ -423,21 +424,15 @@ const formatarData = (dataString) => {
   });
 };
 
-const mostrarMensagem = (texto, cor = 'success') => {
-  snackbar.value.text = texto;
-  snackbar.value.color = cor;
-  snackbar.value.show = true;
-};
-
-// Função para gerar dados simulados
+// Função para gerar dados simulados (mantida para teste)
 const gerarMentoriasSimuladas = () => {
   const mentoriasSimuladas = [];
   const disciplinasSimuladas = [
-    { id: 1, nome: 'Cálculo I', mentorNome: 'João Silva' },
-    { id: 2, nome: 'Programação Orientada a Objetos', mentorNome: 'Maria Oliveira' },
-    { id: 3, nome: 'Estrutura de Dados', mentorNome: 'Pedro Santos' },
-    { id: 4, nome: 'Banco de Dados', mentorNome: 'Ana Costa' },
-    { id: 5, nome: 'Inteligência Artificial', mentorNome: 'Carlos Ferreira' }
+    { id: 1, disciplineName: 'Cálculo I', mentorName: 'João Silva' },
+    { id: 2, disciplineName: 'Programação Orientada a Objetos', mentorName: 'Maria Oliveira' },
+    { id: 3, disciplineName: 'Estrutura de Dados', mentorName: 'Pedro Santos' },
+    { id: 4, disciplineName: 'Banco de Dados', mentorName: 'Ana Costa' },
+    { id: 5, disciplineName: 'Inteligência Artificial', mentorName: 'Carlos Ferreira' }
   ];
 
   const tipos = ['ONLINE', 'PRESENCIAL'];
@@ -460,15 +455,15 @@ const gerarMentoriasSimuladas = () => {
     const mentoria = {
       id: i + 1,
       disciplineId: disciplina.id,
-      disciplineName: disciplina.nome,
-      mentorName: disciplina.mentorNome,
+      disciplineName: disciplina.disciplineName,
+      mentorName: disciplina.mentorName,
       tutoringDate: dataFutura.toISOString().split('T')[0],
       startTime: horaInicio,
       endTime: horaFim,
       tutoringClassType: tipo,
       maxParticipants: 5 + Math.floor(Math.random() * 5),
       qtdParticipants: Math.floor(Math.random() * 5),
-      description: `Mentoria de ${disciplina.nome} com foco em resolução de exercícios e esclarecimento de dúvidas.`
+      description: `Mentoria de ${disciplina.disciplineName} com foco em resolução de exercícios e esclarecimento de dúvidas.`
     };
 
     if (tipo === 'PRESENCIAL') {
