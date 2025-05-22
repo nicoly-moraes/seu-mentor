@@ -1,15 +1,9 @@
 <template>
   <section>
-    <h1 class="titulo">
-      Faça o seu login
-    </h1>
+    <h1 class="titulo">Faça o seu login</h1>
   </section>
- <v-form class="form">
-    <v-row class="box">
-
-      <v-col
-        cols="12"
-      >
+  <v-form class="form" @submit.prevent="logar"> <v-row class="box">
+      <v-col cols="12">
         <v-text-field
           v-model="email"
           :rules="[validation.required, validation.email]"
@@ -17,21 +11,18 @@
           data-vv-name="email"
           variant="solo-filled"
           required
-
         ></v-text-field>
       </v-col>
 
-      <v-col
-        cols="12"
-      >
+      <v-col cols="12">
         <v-text-field
-        v-model="password"
-        :rules="[validation.required]"
-        type="password"
-        label="Senha"
-        data-vv-name="Senha"
-        variant="solo-filled"
-        required
+          v-model="password"
+          :rules="[validation.required]"
+          type="password"
+          label="Senha"
+          data-vv-name="Senha"
+          variant="solo-filled"
+          required
         ></v-text-field>
         <a
           class="esqueci-senha text-caption text-decoration-none"
@@ -44,8 +35,7 @@
       </v-col>
 
       <v-col cols="12" class="text-center">
-        <v-btn class="btn" color="primary" size="large" @click="logar">Entrar</v-btn>
-      </v-col>
+        <v-btn class="btn" color="primary" size="large" type="submit">Entrar</v-btn> </v-col>
     </v-row>
   </v-form>
 </template>
@@ -53,8 +43,7 @@
 <script lang="ts">
 import { validarEmail } from '@/utils/validations.util';
 import { useAuthStore } from '@/stores/auth';
-
-const authStore = useAuthStore();
+import { showSnackbar } from '@/components/AppSnackbar.vue';
 
 export default {
   name: "login",
@@ -70,25 +59,29 @@ export default {
   },
   methods: {
     async logar() {
-      if (
-        this.email &&
-        this.password
-      ) {
+      // Validação básica do formulário antes de tentar login
+      if (!this.email || !this.password || !validarEmail(this.email)) {
+        showSnackbar('Por favor, preencha todos os campos corretamente.', 'error');
+        return;
+      }
+
       try {
-        const response = await authStore.login({
+        await useAuthStore().login({
           email: this.email,
           password: this.password,
         });
+        showSnackbar('Login realizado com sucesso!', 'success');
         this.$router.push('/perfil');
-
-        } catch (error) {
-          console.error("❌ Erro ao logar:", error);
-        }
+      } catch (error: any) {
+        console.error("❌ Erro ao logar:", error);
+        const errorMessage = error.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.';
+        showSnackbar(errorMessage, 'error');
       }
     }
   }
 }
 </script>
+
 
 <style scoped>
 .titulo{

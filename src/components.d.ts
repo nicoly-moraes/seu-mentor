@@ -10,6 +10,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./components/AppFooter.vue')['default']
     AppHeader: typeof import('./components/AppHeader.vue')['default']
+    AppSnackbar: typeof import('./components/AppSnackbar.vue')['default']
     CancelTutoringDialog: typeof import('./components/profile/CancelTutoringDialog.vue')['default']
     EditMentoringSessionDialog: typeof import('./components/profile/EditMentoringSessionDialog.vue')['default']
     MentoriaCard: typeof import('./components/MentoriaCard.vue')['default']
