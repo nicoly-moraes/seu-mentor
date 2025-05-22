@@ -5,7 +5,7 @@
     <v-row>
       <v-col cols="12" md="6">
         <v-card class="mb-4" elevation="2">
-          <v-card-title class="text-h5 font-weight-bold primary">
+          <v-card-title class="text-h5 font-weight-bold bg-primary text-white">
             <v-icon class="mr-2">mdi-teach</v-icon>
             Mentor
           </v-card-title>
@@ -61,7 +61,7 @@
 
       <v-col cols="12" md="6">
         <v-card class="mb-4" elevation="2">
-          <v-card-title class="text-h5 font-weight-bold primary">
+          <v-card-title class="text-h5 font-weight-bold bg-primary text-white">
             <v-icon class="mr-2">mdi-school</v-icon>
             Mentorado
           </v-card-title>
@@ -110,6 +110,7 @@
 </template>
 
 <script setup>
+// As props já estão corretamente definidas aqui
 defineProps({
   mentoringSessionsAsMentor: { type: Array, default: () => [] },
   participationSessions: { type: Array, default: () => [] },
@@ -120,6 +121,7 @@ defineProps({
   getStatusColor: { type: Function, required: true }
 });
 
+// Os emits também estão corretos
 defineEmits(['open-confirmation-form']);
 </script>
 
@@ -127,5 +129,11 @@ defineEmits(['open-confirmation-form']);
 .titulo {
   padding: 20px;
   text-align: center;
+}
+
+/* Adicione este estilo para garantir que o título do card tenha a cor de texto branca */
+.bg-primary {
+  background-color: var(--v-theme-primary); /* Garante que pegue a cor do tema */
+  color: white !important; /* Força o texto a ser branco */
 }
 </style>

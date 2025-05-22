@@ -19,11 +19,14 @@
           </v-alert>
 
           <ProfileSectionInicio v-if="activeSection === 'inicio'"
-            :mentoring-sessions-as-mentor="mentoringSessionsAsMentor" :participation-sessions="participationSessions"
+            :mentoring-sessions-as-mentor="mentoringSessionsAsMentor"
+            :participation-sessions="participationSessions"
             :is-loading-mentoring-sessions-as-mentor="isLoadingMentoringSessionsAsMentor"
             :is-loading-participation-sessions="isLoadingParticipationSessions"
-            :editable-tutoring-status-for-mentor="editableTutoringStatusForMentor" :format-date="formatDate"
-            :get-status-color="getStatusColor" @open-confirmation-form="openConfirmationForm" />
+            :editable-tutoring-status-for-mentor="editableTutoringStatusForMentor"
+            :format-date="formatDate"
+            :get-status-color="getStatusColor"
+            @open-confirmation-form="openConfirmationForm"/>
 
           <ProfileSectionPerfil v-else-if="activeSection === 'perfil'" :user-data-prop="userData"
             :initial-profile-form-data="profileForm" :is-loading="isLoading" :format-date="formatDate"
