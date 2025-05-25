@@ -113,7 +113,7 @@
                 <v-col cols="12" md="8">
                   <p><v-icon class="mr-1">mdi-calendar</v-icon> <strong>Dia:</strong> {{ formatDayOfWeek(availability.dayOfWeek) }}</p>
                   <p><v-icon class="mr-1">mdi-clock-outline</v-icon> <strong>Horário:</strong> {{ availability.startTime }} - {{ availability.endTime }}</p>
-                  <p><v-icon class="mr-1">mdi-teach</v-icon> <strong>Tipo:</strong> {{ availability.tutoringClassType }}</p>
+                  <p><v-icon class="mr-1">mdi-school</v-icon> <strong>Tipo:</strong> {{ availability.tutoringClassType }}</p>
                 </v-col>
 
                 <v-col cols="12" md="4" class="d-flex justify-end align-center">
@@ -156,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch, onMounted } from 'vue';
 
 const props = defineProps({
   mentorAvailabilitiesProp: { type: Array, default: () => [] },
@@ -197,6 +197,32 @@ const resetForm = () => {
     formErrors.disciplineId = '';
     localFormErrorMessage.value = '';
 };
+
+// Novo método para pré-selecionar disciplina
+const preSelectDiscipline = (disciplineId, disciplineName) => {
+  console.log(`[ProfileSectionDisponibilidades] Pré-selecionando disciplina: ID ${disciplineId}, Nome: ${disciplineName}`);
+  
+  // Converte para número se necessário
+  const numericDisciplineId = typeof disciplineId === 'string' ? parseInt(disciplineId) : disciplineId;
+  
+  // Verifica se a disciplina existe na lista
+  const disciplineExists = props.disciplinesProp.some(disc => disc.disciplineId === numericDisciplineId);
+  
+  if (disciplineExists) {
+    localNewAvailabilityForm.value.disciplineId = numericDisciplineId;
+    console.log(`[ProfileSectionDisponibilidades] Disciplina ${disciplineName} (ID: ${numericDisciplineId}) pré-selecionada com sucesso!`);
+  } else {
+    console.warn(`[ProfileSectionDisponibilidades] Disciplina com ID ${numericDisciplineId} não encontrada na lista de disciplinas disponíveis.`);
+    console.log('[ProfileSectionDisponibilidades] Disciplinas disponíveis:', props.disciplinesProp);
+  }
+};
+
+// Watch para reagir a mudanças nas disciplinas (caso ainda não tenham sido carregadas)
+watch(() => props.disciplinesProp, (newDisciplines) => {
+  if (newDisciplines && newDisciplines.length > 0) {
+    console.log('[ProfileSectionDisponibilidades] Disciplinas carregadas:', newDisciplines);
+  }
+}, { deep: true });
 
 const submitAddAvailability = async () => {
   localFormErrorMessage.value = '';
@@ -254,8 +280,14 @@ const submitDeleteAvailability = (availabilityId, disciplineName) => {
   emit('delete-availability', { availabilityId, disciplineName: nameToDisplay });
 };
 
+// Expõe os métodos para o componente pai
 defineExpose({
-  resetForm
+  resetForm,
+  preSelectDiscipline
+});
+
+onMounted(() => {
+  console.log('[ProfileSectionDisponibilidades] Componente montado');
 });
 
 </script>
