@@ -73,7 +73,7 @@
                 >
                   Participando
                 </v-chip>
-                
+
                 <v-chip
                   :color="getStatusColor(mentoria.status)"
                   size="small"
@@ -87,7 +87,7 @@
                 >
                   {{ mentoria.tutoringClassType }}
                 </v-chip>
-                <v-icon 
+                <v-icon
                   :class="isMentoriaExpanded(mentoria, index) ? 'rotate-180' : ''"
                   class="transition-transform"
                 >
@@ -113,7 +113,7 @@
                       <p v-if="mentoria.mentorName"><v-icon class="mr-1" small>mdi-account</v-icon> <strong>Mentor:</strong> {{ mentoria.mentorName }}</p>
                       <p><v-icon class="mr-1" small>mdi-calendar</v-icon> <strong>Data:</strong> {{ formatarData(mentoria.tutoringDate) }}</p>
                       <p><v-icon class="mr-1" small>mdi-clock-outline</v-icon> <strong>Horário:</strong> {{ mentoria.startTime }} - {{ mentoria.endTime }}</p>
-                      <p><v-icon class="mr-1" small>mdi-flag</v-icon> <strong>Status:</strong> 
+                      <p><v-icon class="mr-1" small>mdi-flag</v-icon> <strong>Status:</strong>
                         <v-chip :color="getStatusColor(mentoria.status)" size="small" class="ml-1">
                           {{ getStatusText(mentoria.status) }}
                         </v-chip>
@@ -122,18 +122,12 @@
 
                     <v-col cols="12" md="6">
                       <p><v-icon class="mr-1" small>mdi-school</v-icon> <strong>Tipo:</strong> {{ mentoria.tutoringClassType }}</p>
-                      <p v-if="mentoria.local"><v-icon class="mr-1" small>mdi-map-marker</v-icon> <strong>Local:</strong> {{ mentoria.local }}</p>
-                      <p v-if="mentoria.linkVideo">
-                        <v-icon class="mr-1" small>mdi-video</v-icon>
-                        <strong>Link:</strong>
-                        <a :href="mentoria.linkVideo" target="_blank" rel="noopener noreferrer" class="text-decoration-none">Acessar aula</a>
-                      </p>
                       <p v-if="mentoria.maxParticipants">
-                        <v-icon class="mr-1" small>mdi-account-group</v-icon> 
+                        <v-icon class="mr-1" small>mdi-account-group</v-icon>
                         <strong>Participantes:</strong> {{ mentoria.qtdParticipants || 0 }} / {{ mentoria.maxParticipants }}
                       </p>
                       <p v-if="mentoria.isChatEnable !== undefined">
-                        <v-icon class="mr-1" small>mdi-chat</v-icon> 
+                        <v-icon class="mr-1" small>mdi-chat</v-icon>
                         <strong>Chat:</strong> {{ mentoria.isChatEnable ? 'Habilitado' : 'Desabilitado' }}
                       </p>
                     </v-col>
@@ -202,7 +196,7 @@
     <v-card-text v-else class="text-center pa-6">
       <v-icon size="large" color="grey" class="mb-2">mdi-calendar-alert</v-icon>
       <p class="text-h6 text-medium-emphasis">
-        Nenhuma mentoria disponível 
+        Nenhuma mentoria disponível
         <span v-if="dataSelecionada">para {{ formatarDataChip(dataSelecionada) }}</span>
         com os filtros selecionados.
       </p>
@@ -271,16 +265,16 @@ const getMentoriaUniqueId = (mentoria, index) => {
 // Função para verificar se uma mentoria específica está expandida
 const isMentoriaExpanded = (mentoria, index) => {
   console.log('Verificando expansão - mentoria:', mentoria, 'index:', index, 'selecionada:', props.mentoriaSelecionada);
-  
+
   // Se não há mentoria selecionada, nenhuma está expandida
   if (!props.mentoriaSelecionada) {
     return false;
   }
-  
+
   // Comparar usando o mesmo critério usado para identificar as mentorias
   const currentUniqueId = getMentoriaUniqueId(mentoria, index);
   const selectedUniqueId = getMentoriaUniqueId(props.mentoriaSelecionada, props.mentoriaSelecionada._index || 0);
-  
+
   return currentUniqueId === selectedUniqueId;
 };
 
@@ -291,13 +285,13 @@ const toggleMentoriaDetails = (mentoria, index) => {
   console.log('mentoria.id:', mentoria.id);
   console.log('index:', index);
   console.log('props.mentoriaSelecionada:', props.mentoriaSelecionada);
-  
+
   // Criar uma cópia da mentoria com o índice para referência
   const mentoriaComIndex = {
     ...mentoria,
     _index: index
   };
-  
+
   // Se a mentoria clicada já está expandida, fechar
   if (isMentoriaExpanded(mentoria, index)) {
     console.log('Fechando mentoria');
@@ -312,25 +306,25 @@ const toggleMentoriaDetails = (mentoria, index) => {
 
 const formatarDataChip = (data) => {
   if (!data) return '';
-  
+
   // Se já é uma string no formato correto DD/MM/YYYY, retornar
   if (typeof data === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(data)) {
     return data;
   }
-  
+
   // Se é uma string no formato YYYY-MM-DD, converter sem timezone
   if (typeof data === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data)) {
     const [year, month, day] = data.split('-').map(Number);
     return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
   }
-  
+
   // Para outros casos, tentar converter
   const date = new Date(data);
   if (isNaN(date.getTime())) {
     console.warn('formatarDataChip: data inválida:', data);
     return '';
   }
-  
+
   return date.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -342,7 +336,7 @@ const jaParticipando = (mentoria) => {
   if (!mentoria?.participants || !props.currentUserId) {
     return false;
   }
-  
+
   const currentUserIdStr = String(props.currentUserId);
   return mentoria.participants.some(p => String(p.userId) === currentUserIdStr);
 };
@@ -350,24 +344,24 @@ const jaParticipando = (mentoria) => {
 const podeAgendar = (mentoria) => {
   if (!mentoria) return false;
   if (jaParticipando(mentoria)) return false;
-  
+
   const statusPermitidos = [
-    'A_MARCAR', 
+    'A_MARCAR',
     'AGENDADA_ALUNO',
-    'PENDENTE', 
+    'PENDENTE',
     'AGENDADA',
-    'PENDENTE_CONFIRMACAO_MENTOR', 
+    'PENDENTE_CONFIRMACAO_MENTOR',
     'CONFIRMADA'
   ];
-  
+
   if (!statusPermitidos.includes(mentoria.status)) return false;
-  
+
   // Verificar vagas disponíveis se houver limite
   if (mentoria.maxParticipants) {
     const vagas = mentoria.maxParticipants - (mentoria.qtdParticipants || 0);
     if (vagas <= 0) return false;
   }
-  
+
   return true;
 };
 
