@@ -6,7 +6,7 @@
       <v-col cols="12" md="6">
         <v-card class="mb-4" elevation="2">
           <v-card-title class="text-h5 font-weight-bold bg-primary text-white">
-            <v-icon class="mr-2">mdi-teach</v-icon>
+            <v-icon class="mr-2">mdi-school</v-icon>
             Mentor
           </v-card-title>
 
@@ -100,7 +100,7 @@
 
             <v-card-text v-else class="text-center pa-6 text-medium-emphasis">
               <v-icon size="large" class="mb-2">mdi-information-outline</v-icon>
-              <p>Você não está participando de nenhuma mentoria no momento.</p>
+              <p>Você não está participando de mentorias no momento.</p>
             </v-card-text>
           </v-card-text>
         </v-card>

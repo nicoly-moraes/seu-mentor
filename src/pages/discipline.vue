@@ -1,37 +1,26 @@
 <template>
-  <h1 class="titulo">Disciplinas</h1>
-  <v-row class="principal">
-    <v-col
-      xs="6"
-      md="4"
-      lg="3"
-      v-for="(disciplina, index) in disciplines"
-      :key="index"
-    >
-      <v-card class="card mx-auto" width="300" variant="outlined">
+  <h1 class="titulo">MENTORIAS</h1>
+  <v-row class="principal px-0">
+    <v-col lg="3" md="4" xs="6" v-for="disciplina in disciplines":key="disciplina.disciplineId">
+      <v-card class="card mx-auto" variant="outlined" width="300">
         <v-card-title class="card-titulo">
           {{ disciplina.disciplineName }}
         </v-card-title>
         <v-card-subtitle class="card-subtitulo">
-          Área: {{ disciplina.courseName }}
+          {{ disciplina.courseName }}
         </v-card-subtitle>
-        <v-img
-          height="200px"
-          src="../assets/ads-img.png"
-          cover
-          title="Imagem"
-        ></v-img>
+        <v-img height="200px" src="../assets/ads-img.png" cover title="Imagem"></v-img>
 
         <v-card-text class="descricao" :title="disciplina.description">
           {{ disciplina.description }}
         </v-card-text>
 
         <div class="btn-card">
-          <v-btn class="btn" :to="mentorButtonRoute" title="Seja Mentor">
+          <v-btn class="btn" @click="irParaSejaMentor(disciplina.disciplineId, disciplina.disciplineName)" title="Seja Mentor">
             Seja Mentor
           </v-btn>
-          <v-btn class="btn" :to="mentoredButtonRoute" title="Seja Mentorado">
-            Seja Mentorado
+          <v-btn class="btn" @click="irParaAgendamento(disciplina.disciplineId, disciplina.courseName)" title="Mentorias">
+            Mentoria
           </v-btn>
         </div>
       </v-card>
@@ -43,6 +32,14 @@
 import { getAllDisciplines } from '@/services/disciplineService';
 import { useAuthStore } from '@/stores/auth';
 
+interface Discipline {
+  disciplineId: number;
+  disciplineName: string;
+  description: string;
+  courseAreaId: number;
+  courseName: string;
+}
+
 export default {
   name: "discipline",
   data() {
@@ -51,19 +48,6 @@ export default {
       loading: false,
       error: null as string | null,
     };
-  },
-  computed: {
-    // Computa a rota para o botão "Seja Mentor"
-    mentorButtonRoute(): string {
-      const authStore = useAuthStore(); // Acessa o store de autenticação
-      return authStore.isAuthenticated ? '/perfil' : '/cadastre';
-    },
-    // Computa a rota para o botão "Seja Mentorado"
-    mentoredButtonRoute(): string {
-      const authStore = useAuthStore(); // Acessa o store de autenticação
-      // Ajuste '/agendamento' para a rota real da página de agendamento de mentorias
-      return authStore.isAuthenticated ? '/agendamento' : '/cadastre';
-    },
   },
   mounted() {
     this.fetchDisciplines();
@@ -88,16 +72,41 @@ export default {
         this.loading = false;
       }
     },
+    
+    // Método para navegar para a página de agendamento
+    irParaAgendamento(disciplineId: number, courseName: String) {
+      const authStore = useAuthStore();
+      if (authStore.isAuthenticated) {
+        // Navega para /agendamento com o ID da disciplina como query parameter
+        this.$router.push({ path: '/agendamento', query: { 
+          disciplineId: disciplineId.toString(),
+          courseName: courseName } });
+      } else {
+        // Se não estiver autenticado, redireciona para a página de cadastro
+        this.$router.push('/cadastre');
+      }
+    },
+
+    // Novo método para navegar para disponibilidades com disciplina pré-selecionada
+    irParaSejaMentor(disciplineId: number, disciplineName: string) {
+      const authStore = useAuthStore();
+      if (authStore.isAuthenticated) {
+        // Navega para /perfil com a seção de disponibilidades e disciplina pré-selecionada
+        this.$router.push({ 
+          path: '/perfil', 
+          query: { 
+            section: 'disponibilidades',
+            disciplineId: disciplineId.toString(),
+            disciplineName: disciplineName
+          } 
+        });
+      } else {
+        // Se não estiver autenticado, redireciona para a página de cadastro
+        this.$router.push('/cadastre');
+      }
+    },
   },
 };
-
-interface Discipline {
-  disciplineId: number;
-  disciplineName: string;
-  description: string;
-  courseAreaId: number;
-  courseName: string;
-}
 </script>
 
 <style scoped>
@@ -146,9 +155,9 @@ interface Discipline {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 3; /* Limita a 3 linhas */
   -webkit-box-orient: vertical;
-  line-height: 1.2em;
+  line-height: 1.2em; /* Ajuste conforme necessário */
 }
 
 .btn-card {
@@ -164,6 +173,6 @@ interface Discipline {
   background-color: #004AAD;
   color: #FFFFFF;
   font-size: 12px;
-  width: 120px;
+  width: 120px; /* Para manter os botões com o mesmo tamanho */
 }
 </style>

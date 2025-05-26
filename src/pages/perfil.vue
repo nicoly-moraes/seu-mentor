@@ -49,6 +49,7 @@
             @operation-error="handleOperationError" />
 
           <ProfileSectionDisponibilidades v-else-if="activeSection === 'disponibilidades'"
+            ref="disponibilidadesComponent"
             :mentor-availabilities-prop="mentorAvailabilities" :disciplines-prop="disciplines"
             :is-loading-availabilities-prop="isLoadingAvailabilities"
             :is-adding-availability-prop="isAddingAvailability"
@@ -76,8 +77,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, watch, nextTick } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import {
   getUserData,
@@ -104,6 +105,7 @@ import ProfileSectionConta from '@/components/profile/ProfileSectionConta.vue';
 import MentoriaConfirmationDialog from '@/components/profile/MentoriaConfirmationDialog.vue';
 
 const router = useRouter();
+const route = useRoute();
 const authStore = useAuthStore();
 
 const userData = ref(null);
@@ -124,6 +126,7 @@ const isDeletingAccount = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
 
+const disponibilidadesComponent = ref(null);
 
 const editingTutoringSession = ref(null);
 const isConfirmationDialogVisible = ref(false);
@@ -138,7 +141,7 @@ const menuItems = [
   { title: 'Início', value: 'inicio', icon: 'mdi-view-dashboard' },
   { title: 'Meu Perfil', value: 'perfil', icon: 'mdi-account' },
   { title: 'Mentorias (Mentorado)', value: 'mentorias-mentorado', icon: 'mdi-school' },
-  { title: 'Mentorias (Mentor)', value: 'mentorias-mentor', icon: 'mdi-teach' },
+  { title: 'Mentorias (Mentor)', value: 'mentorias-mentor', icon: 'mdi-school' },
   { title: 'Disponibilidades', value: 'disponibilidades', icon: 'mdi-calendar-clock' },
   { title: 'Conta', value: 'conta', icon: 'mdi-cog' },
 ];
@@ -224,6 +227,72 @@ async function fetchDisciplines() {
   }
 }
 
+function handleUrlParams() {
+  const section = route.query.section;
+  const disciplineId = route.query.disciplineId;
+  const disciplineName = route.query.disciplineName;
+
+  console.log('[Profile] handleUrlParams:', { section, disciplineId, disciplineName });
+
+  if (section) {
+    activeSection.value = section;
+  }
+
+  // Se há parâmetros de disciplina e estamos na seção de disponibilidades
+  if (section === 'disponibilidades' && disciplineId && disciplineName) {
+    console.log('[Profile] Tentando pré-selecionar disciplina...');
+    
+    // Função para tentar pré-selecionar a disciplina
+    const tryPreSelectDiscipline = () => {
+      if (disponibilidadesComponent.value && 
+          typeof disponibilidadesComponent.value.preSelectDiscipline === 'function' &&
+          disciplines.value.length > 0) {
+        
+        console.log('[Profile] Executando pré-seleção da disciplina');
+        disponibilidadesComponent.value.preSelectDiscipline(parseInt(disciplineId), disciplineName);
+        return true;
+      }
+      return false;
+    };
+
+    // Tenta imediatamente
+    if (!tryPreSelectDiscipline()) {
+      // Se não conseguiu, aguarda o próximo tick e tenta novamente
+      nextTick(() => {
+        if (!tryPreSelectDiscipline()) {
+          // Se ainda não conseguiu, aguarda um pouco mais (para caso as disciplinas ainda estejam carregando)
+          setTimeout(() => {
+            tryPreSelectDiscipline();
+          }, 500);
+        }
+      });
+    }
+  }
+}
+
+// Também adicione este watch para reagir quando as disciplinas terminarem de carregar
+watch(() => disciplines.value, (newDisciplines) => {
+  if (newDisciplines && newDisciplines.length > 0) {
+    console.log('[Profile] Disciplinas carregadas, verificando se precisa pré-selecionar...');
+    
+    const section = route.query.section;
+    const disciplineId = route.query.disciplineId;
+    const disciplineName = route.query.disciplineName;
+    
+    if (section === 'disponibilidades' && disciplineId && disciplineName && 
+        activeSection.value === 'disponibilidades') {
+      
+      nextTick(() => {
+        if (disponibilidadesComponent.value && 
+            typeof disponibilidadesComponent.value.preSelectDiscipline === 'function') {
+          console.log('[Profile] Pré-selecionando disciplina após carregamento das disciplinas');
+          disponibilidadesComponent.value.preSelectDiscipline(parseInt(disciplineId), disciplineName);
+        }
+      });
+    }
+  }
+}, { deep: true });
+
 const handleUpdateProfile = async (profileDataToUpdate) => {
   if (!authStore.userId) return;
   isLoading.value = true;
@@ -303,6 +372,11 @@ const handleAddAvailability = async (availabilityData) => {
     } else {
       handleOperationSuccess('Nova disponibilidade adicionada! Atualizando lista...');
       await fetchMentorAvailabilities();
+    }
+    
+    // Reset do formulário após adicionar com sucesso
+    if (disponibilidadesComponent.value && typeof disponibilidadesComponent.value.resetForm === 'function') {
+      disponibilidadesComponent.value.resetForm();
     }
   } catch (error) {
     console.error('Erro ao adicionar disponibilidade:', error);
@@ -429,11 +503,17 @@ watch(editingTutoringSession, (newValue) => {
     isConfirmationDialogVisible.value = true;
   }
 });
+
 watch(isConfirmationDialogVisible, (newValue) => {
   if (!newValue && editingTutoringSession.value !== null) {
     editingTutoringSession.value = null;
   }
 });
+
+// Watch para mudanças na rota
+watch(() => route.query, () => {
+  handleUrlParams();
+}, { deep: true });
 
 onMounted(async () => {
   if (authStore.userId) {
@@ -444,6 +524,9 @@ onMounted(async () => {
       fetchMentoringSessionsAsMentor(),
       fetchDisciplines()
     ]);
+    
+    // Lidar com parâmetros da URL após carregar os dados
+    handleUrlParams();
   } else {
     router.push('/login');
   }

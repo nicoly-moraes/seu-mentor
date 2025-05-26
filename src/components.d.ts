@@ -8,6 +8,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AgendamentoConfirmationDialog: typeof import('./components/agendamento/AgendamentoConfirmationDialog.vue')['default']
+    AgendamentoFilters: typeof import('./components/agendamento/AgendamentoFilters.vue')['default']
+    AgendamentoMentoriaDetails: typeof import('./components/agendamento/AgendamentoMentoriaDetails.vue')['default']
+    AgendamentoMentoriasList: typeof import('./components/agendamento/AgendamentoMentoriasList.vue')['default']
     AppFooter: typeof import('./components/AppFooter.vue')['default']
     AppHeader: typeof import('./components/AppHeader.vue')['default']
     AppSnackbar: typeof import('./components/AppSnackbar.vue')['default']

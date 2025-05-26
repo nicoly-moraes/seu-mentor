@@ -4,236 +4,77 @@
 
     <v-row>
       <v-col cols="12" md="4" lg="3">
-        <v-card class="mb-4" elevation="2">
-          <v-card-title class="text-h6 font-weight-bold">
-            <v-icon class="mr-2">mdi-filter</v-icon>
-            Filtros
-          </v-card-title>
-          <v-card-text>
-            <v-select
-              v-model="filtros.disciplina"
-              :items="disciplinas"
-              item-title="disciplineName"
-              item-value="disciplineId"
-              label="Disciplina"
-              variant="outlined"
-              clearable
-              density="comfortable"
-              class="mb-3"
-              @update:model-value="filtrarMentorias"
-            ></v-select>
-
-            <v-select
-              v-model="filtros.tipo"
-              :items="tiposMentoria"
-              label="Tipo de Mentoria"
-              variant="outlined"
-              clearable
-              density="comfortable"
-              class="mb-3"
-              @update:model-value="filtrarMentorias"
-            ></v-select>
-
-            <v-btn
-              block
-              color="primary"
-              class="mt-2"
-              @click="limparFiltros"
-              prepend-icon="mdi-refresh"
-            >
-              Limpar Filtros
-            </v-btn>
-          </v-card-text>
-        </v-card>
-
-        <v-card elevation="2">
-          <v-card-title class="text-h6 font-weight-bold">
-            <v-icon class="mr-2">mdi-calendar</v-icon>
-            Calendário
-          </v-card-title>
-          <v-card-text>
-            <v-date-picker
-              v-model="datasSelecionadas"
-              multiple
-              color="primary"
-              elevation="0"
-              :min="dataMinima"
-              :max="dataMaxima"
-              @update:model-value="filtrarMentorias"
-            ></v-date-picker>
-          </v-card-text>
-        </v-card>
+        <AgendamentoFilters 
+          :filtros="filtros" 
+          :disciplinas="disciplinas"
+          :carregando-disciplinas="carregandoDisciplinas" 
+          :data-selecionada="dataSelecionada"
+          :tipos-mentoria="tiposMentoria" 
+          :data-minima="dataMinima" 
+          :data-maxima="dataMaxima"
+          @update:disciplina="handleDisciplinaChange" 
+          @update:tipo="filtros.tipo = $event"
+          @update:data-selecionada="handleDataChange" 
+          @limpar-filtros="limparFiltros" 
+          @limpar-data="limparData" 
+        />
       </v-col>
 
       <v-col cols="12" md="8" lg="9">
-        <v-card elevation="2">
-          <v-card-title class="d-flex justify-space-between align-center">
-            <div class="text-h6 font-weight-bold">
-              <v-icon class="mr-2">mdi-teach</v-icon>
-              Mentorias Disponíveis
-            </div>
-            <v-chip
-              v-if="datasSelecionadas.length > 0"
-              color="primary"
-              size="small"
-              class="ml-2"
-              closable
-              @click:close="datasSelecionadas = []"
-            >
-              {{ datasSelecionadas.length }} {{ datasSelecionadas.length === 1 ? 'data selecionada' : 'datas selecionadas' }}
-            </v-chip>
-          </v-card-title>
-
-          <v-card-text v-if="carregando" class="text-center pa-6">
-            <v-progress-circular indeterminate color="primary"></v-progress-circular>
-            <p class="mt-2">Carregando mentorias disponíveis...</p>
-          </v-card-text>
-
-          <template v-else-if="mentoriasFiltradas.length > 0">
-            <v-list>
-              <v-list-subheader v-if="mentoriasFiltradas.length > 0">
-                {{ mentoriasFiltradas.length }} mentorias encontradas
-              </v-list-subheader>
-
-              <v-list-item
-                v-for="mentoria in mentoriasFiltradas"
-                :key="mentoria.id"
-                :value="mentoria.id"
-                @click="selecionarMentoria(mentoria)"
-                :active="mentoriaSelecionada?.id === mentoria.id"
-                :title="mentoria.disciplineName"
-                :subtitle="`${formatarData(mentoria.tutoringDate)} • ${mentoria.startTime} - ${mentoria.endTime}`"
-                rounded="lg"
-                class="mb-2"
-              >
-                <template v-slot:prepend>
-                  <v-avatar color="primary" variant="tonal">
-                    <v-icon>mdi-book-education</v-icon>
-                  </v-avatar>
-                </template>
-
-                <template v-slot:append>
-                  <v-chip
-                    :color="mentoria.tutoringClassType === 'ONLINE' ? 'info' : 'success'"
-                    size="small"
-                    class="mr-2"
-                  >
-                    {{ mentoria.tutoringClassType }}
-                  </v-chip>
-                  <v-btn
-                    icon="mdi-information-outline"
-                    variant="text"
-                    size="small"
-                    @click.stop="selecionarMentoria(mentoria)"
-                  ></v-btn>
-                </template>
-              </v-list-item>
-            </v-list>
-          </template>
-
-          <v-card-text v-else class="text-center pa-6">
-            <v-icon size="large" color="grey" class="mb-2">mdi-calendar-alert</v-icon>
-            <p class="text-h6 text-medium-emphasis">Nenhuma mentoria disponível com os filtros selecionados.</p>
-            <v-btn color="primary" class="mt-4" @click="limparFiltros">Limpar Filtros</v-btn>
-          </v-card-text>
-        </v-card>
-
-        <v-card v-if="mentoriaSelecionada" class="mt-4" elevation="2">
-          <v-card-title class="text-h6 font-weight-bold">
-            <v-icon class="mr-2">mdi-information-outline</v-icon>
-            Detalhes da Mentoria
-          </v-card-title>
-
-          <v-card-text>
-            <v-row>
-              <v-col cols="12" md="6">
-                <p><v-icon class="mr-1" small>mdi-book-open-variant</v-icon> <strong>Disciplina:</strong> {{ mentoriaSelecionada.disciplineName }}</p>
-                <p><v-icon class="mr-1" small>mdi-account</v-icon> <strong>Mentor:</strong> {{ mentoriaSelecionada.mentorName }}</p>
-                <p><v-icon class="mr-1" small>mdi-calendar</v-icon> <strong>Data:</strong> {{ formatarData(mentoriaSelecionada.tutoringDate) }}</p>
-                <p><v-icon class="mr-1" small>mdi-clock-outline</v-icon> <strong>Horário:</strong> {{ mentoriaSelecionada.startTime }} - {{ mentoriaSelecionada.endTime }}</p>
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <p><v-icon class="mr-1" small>mdi-teach</v-icon> <strong>Tipo:</strong> {{ mentoriaSelecionada.tutoringClassType }}</p>
-                <p v-if="mentoriaSelecionada.local"><v-icon class="mr-1" small>mdi-map-marker</v-icon> <strong>Local:</strong> {{ mentoriaSelecionada.local }}</p>
-                <p v-if="mentoriaSelecionada.linkVideo">
-                  <v-icon class="mr-1" small>mdi-video</v-icon>
-                  <strong>Link:</strong>
-                  <a :href="mentoriaSelecionada.linkVideo" target="_blank" rel="noopener noreferrer" class="text-decoration-none">Acessar aula</a>
-                </p>
-                <p><v-icon class="mr-1" small>mdi-account-group</v-icon> <strong>Participantes:</strong> {{ mentoriaSelecionada.qtdParticipants || 0 }} / {{ mentoriaSelecionada.maxParticipants }}</p>
-              </v-col>
-
-              <v-col cols="12" v-if="mentoriaSelecionada.description">
-                <p><v-icon class="mr-1" small>mdi-text-box-outline</v-icon> <strong>Descrição:</strong></p>
-                <p class="pl-6">{{ mentoriaSelecionada.description }}</p>
-              </v-col>
-            </v-row>
-          </v-card-text>
-
-          <v-card-actions class="pa-4">
-            <v-spacer></v-spacer>
-            <v-btn
-              color="grey-darken-1"
-              variant="text"
-              @click="mentoriaSelecionada = null"
-            >
-              Fechar
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="elevated"
-              @click="agendarMentoria"
-              :loading="agendando"
-              :disabled="agendando || !podeAgendar"
-            >
-              Agendar Mentoria
-            </v-btn>
-          </v-card-actions>
-        </v-card>
+        <AgendamentoMentoriasList 
+          :mentorias-filtradas="mentoriasFiltradas" 
+          :mentoria-selecionada="mentoriaSelecionada"
+          :disciplina-selecionada="disciplinaSelecionada" 
+          :data-selecionada="dataSelecionada"
+          :carregando="carregandoMentorias" 
+          :formatar-data="formatarData"
+          :current-user-id="authStore.userId"
+          :agendando="agendando"
+          :saindo-mentoria="saindoMentoria"
+          @selecionar-mentoria="selecionarMentoria"
+          @limpar-filtros="limparFiltros" 
+          @limpar-data="limparData" 
+          @limpar-disciplina="limparDisciplina"
+          @agendar="agendarMentoria"
+          @sair-mentoria="sairMentoria"
+        />
       </v-col>
     </v-row>
 
-    <v-dialog v-model="dialogConfirmacao" max-width="500px" persistent>
-      <v-card>
-        <v-card-title class="text-h5 bg-primary text-white">
-          Confirmar Agendamento
-        </v-card-title>
-        <v-card-text class="pt-4">
-          <p>Você está prestes a agendar uma mentoria de <strong>{{ mentoriaSelecionada?.disciplineName }}</strong> com o mentor <strong>{{ mentoriaSelecionada?.mentorName }}</strong>.</p>
-          <p class="mt-2">Data: <strong>{{ mentoriaSelecionada ? formatarData(mentoriaSelecionada.tutoringDate) : '' }}</strong></p>
-          <p>Horário: <strong>{{ mentoriaSelecionada?.startTime }} - {{ mentoriaSelecionada?.endTime }}</strong></p>
-
-          <v-text-field
-            v-model="topicoMentoria"
-            label="Tópico específico (opcional)"
-            placeholder="Ex: Tenho dúvidas sobre o capítulo 3"
-            variant="outlined"
-            class="mt-4"
-          ></v-text-field>
-        </v-card-text>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn color="grey-darken-1" variant="text" @click="dialogConfirmacao = false" :disabled="agendando">
-            Cancelar
-          </v-btn>
-          <v-btn color="primary" variant="elevated" @click="confirmarAgendamento" :loading="agendando">
-            Confirmar Agendamento
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    </v-container>
+    <!-- Dialog de Confirmação -->
+    <AgendamentoConfirmationDialog 
+      :visible="dialogConfirmacao" 
+      :mentoria="mentoriaSelecionada"
+      :disciplina-selecionada="disciplinaSelecionada" 
+      :data-selecionada="dataSelecionada" 
+      :topico="topicoMentoria"
+      :confirmando="agendando" 
+      :formatar-data="formatarData" 
+      @update:visible="dialogConfirmacao = $event"
+      @update:topico="topicoMentoria = $event" 
+      @confirmar="confirmarAgendamento" 
+      @cancelar="cancelarAgendamento" 
+    />
+  </v-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { getAllDisciplines } from '@/services/disciplineService';
-import { getAvailableTutoringSessions, joinTutoringSession } from '@/services/userService';
-import { showSnackbar } from '@/components/AppSnackbar.vue'; // Importa a função showSnackbar global
+import {
+  getAvailableTutoringsForUserAndDiscipline,
+  scheduleTutoring,
+  addParticipant,
+  leaveTutoring
+} from '@/services/tutoringService';
+import { showSnackbar } from '@/components/AppSnackbar.vue';
+
+// Importar os componentes
+import AgendamentoFilters from '@/components/agendamento/AgendamentoFilters.vue';
+import AgendamentoMentoriasList from '@/components/agendamento/AgendamentoMentoriasList.vue';
+import AgendamentoConfirmationDialog from '@/components/agendamento/AgendamentoConfirmationDialog.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -241,14 +82,15 @@ const authStore = useAuthStore();
 // Estado
 const mentorias = ref([]);
 const disciplinas = ref([]);
-const carregando = ref(true);
+const disciplinaSelecionada = ref(null);
+const dataSelecionada = ref(null);
+const carregandoDisciplinas = ref(false);
+const carregandoMentorias = ref(false);
 const mentoriaSelecionada = ref(null);
-const datasSelecionadas = ref([]);
 const agendando = ref(false);
+const saindoMentoria = ref(false);
 const dialogConfirmacao = ref(false);
 const topicoMentoria = ref('');
-
-// O snackbar reativo local foi removido, agora usamos o global
 
 // Filtros
 const filtros = ref({
@@ -262,81 +104,146 @@ const tiposMentoria = [
   { title: 'Presencial', value: 'PRESENCIAL' }
 ];
 
-// Data mínima (hoje) e máxima (3 meses à frente)
+// CORREÇÃO:
 const hoje = new Date();
 const dataMinima = hoje.toISOString().split('T')[0];
-const dataMaxima = new Date(hoje.setMonth(hoje.getMonth() + 3)).toISOString().split('T')[0];
+// Criar uma nova instância para não modificar a original
+const dataMax = new Date(hoje);
+dataMax.setMonth(dataMax.getMonth() + 3);
+const dataMaxima = dataMax.toISOString().split('T')[0];
+
+// Inicializar com a data de hoje
+const initializeDate = () => {
+  try {
+    const hoje = new Date();
+    if (isNaN(hoje.getTime())) {
+      throw new Error('Data atual inválida');
+    }
+    return hoje.toISOString().split('T')[0];
+  } catch (error) {
+    console.error('Erro ao inicializar data:', error);
+    // Fallback para uma data conhecida
+    return '2024-01-01';
+  }
+};
+
+dataSelecionada.value = initializeDate();
 
 // Computed properties
 const mentoriasFiltradas = computed(() => {
   let resultado = [...mentorias.value];
-
-  // Filtrar por disciplina
-  if (filtros.value.disciplina) {
-    resultado = resultado.filter(m => m.disciplineId === filtros.value.disciplina);
-  }
 
   // Filtrar por tipo de mentoria
   if (filtros.value.tipo) {
     resultado = resultado.filter(m => m.tutoringClassType === filtros.value.tipo);
   }
 
-  // Filtrar por datas selecionadas
-  if (datasSelecionadas.value.length > 0) {
-    resultado = resultado.filter(m => {
-      const dataFormatada = m.tutoringDate.split('T')[0];
-      return datasSelecionadas.value.includes(dataFormatada);
-    });
-  }
-
   return resultado;
 });
 
-const podeAgendar = computed(() => {
-  if (!mentoriaSelecionada.value) return false;
-
-  // Verificar se há vagas disponíveis
-  const vagas = mentoriaSelecionada.value.maxParticipants - (mentoriaSelecionada.value.qtdParticipants || 0);
-  return vagas > 0;
-});
-
 // Métodos
-const buscarMentorias = async () => {
+const buscarDisciplinas = async () => {
   if (!authStore.isAuthenticated) {
     router.push('/login');
-    // Usar o snackbar global aqui
-    showSnackbar('Você precisa estar logado para ver as mentorias.', 'warning');
+    showSnackbar('Você precisa estar logado para ver as disciplinas.', 'warning');
     return;
   }
 
-  carregando.value = true;
-  try {
-    // Simulando a chamada à API - substitua pela chamada real
-    // const response = await getAvailableTutoringSessions();
-    // mentorias.value = response.data;
-
-    // Dados simulados para demonstração
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    mentorias.value = gerarMentoriasSimuladas();
-    // showSnackbar('Mentorias carregadas com sucesso!', 'success'); // Opcional: mostrar sucesso no carregamento
-  } catch (error) {
-    console.error('Erro ao buscar mentorias:', error);
-    // Usar o snackbar global aqui
-    showSnackbar('Erro ao carregar mentorias disponíveis. Tente novamente mais tarde.', 'error');
-  } finally {
-    carregando.value = false;
-  }
-};
-
-const buscarDisciplinas = async () => {
+  carregandoDisciplinas.value = true;
   try {
     const response = await getAllDisciplines();
     disciplinas.value = response.data;
   } catch (error) {
     console.error('Erro ao buscar disciplinas:', error);
-    // Usar o snackbar global aqui
     showSnackbar('Erro ao carregar lista de disciplinas.', 'error');
+  } finally {
+    carregandoDisciplinas.value = false;
   }
+};
+
+const buscarMentorias = async (disciplineId, date) => {
+  if (!authStore.isAuthenticated || !disciplineId || !date) return;
+
+  carregandoMentorias.value = true;
+  try {
+    // Garantir que a data está no formato correto (YYYY-MM-DD)
+    let dataFormatada;
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      dataFormatada = date; // Já está no formato correto
+    } else if (typeof date === 'string') {
+      // Tentar outros formatos
+      const dateParts = date.split('/');
+      if (dateParts.length === 3) {
+        // Assumir formato DD/MM/YYYY
+        dataFormatada = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
+      } else {
+        dataFormatada = date;
+      }
+    } else if (date instanceof Date) {
+      if (isNaN(date.getTime())) {
+        console.error('Data inválida:', date);
+        return;
+      }
+      // Converter sem problemas de timezone
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dataFormatada = `${year}-${month}-${day}`;
+    } else {
+      console.error('Formato de data inválido:', date);
+      return;
+    }
+
+    console.log('Buscando mentorias para:', { disciplineId, date: dataFormatada });
+
+    const response = await getAvailableTutoringsForUserAndDiscipline(
+      authStore.userId,
+      disciplineId,
+      dataFormatada
+    );
+    mentorias.value = response.data || [];
+
+    if (mentorias.value.length === 0) {
+      showSnackbar(`Nenhuma mentoria encontrada para ${formatarData(dataFormatada)}`, 'info');
+    }
+  } catch (error) {
+    console.error('Erro ao buscar mentorias:', error);
+    const errorMessage = error.response?.data?.message || 'Erro ao carregar mentorias disponíveis. Tente novamente mais tarde.';
+    showSnackbar(errorMessage, 'error');
+    mentorias.value = [];
+  } finally {
+    carregandoMentorias.value = false;
+  }
+};
+
+const handleDisciplinaChange = (disciplineId) => {
+  filtros.value.disciplina = disciplineId;
+
+  if (disciplineId) {
+    disciplinaSelecionada.value = disciplinas.value.find(d => d.disciplineId === disciplineId);
+    // Buscar mentorias com a data atual selecionada
+    if (dataSelecionada.value) {
+      buscarMentorias(disciplineId, dataSelecionada.value);
+    }
+  } else {
+    disciplinaSelecionada.value = null;
+    mentorias.value = [];
+  }
+
+  // Limpar mentoria selecionada quando trocar disciplina
+  mentoriaSelecionada.value = null;
+};
+
+const handleDataChange = (novaData) => {
+  dataSelecionada.value = novaData;
+
+  // Se há uma disciplina selecionada, buscar mentorias para a nova data
+  if (disciplinaSelecionada.value && novaData) {
+    buscarMentorias(disciplinaSelecionada.value.disciplineId, novaData);
+  }
+
+  // Limpar mentoria selecionada quando trocar data
+  mentoriaSelecionada.value = null;
 };
 
 const selecionarMentoria = (mentoria) => {
@@ -346,77 +253,236 @@ const selecionarMentoria = (mentoria) => {
 const limparFiltros = () => {
   filtros.value.disciplina = null;
   filtros.value.tipo = null;
-  datasSelecionadas.value = [];
-  // Não precisamos chamar filtrarMentorias aqui, o computed fará isso.
+  disciplinaSelecionada.value = null;
+  dataSelecionada.value = new Date().toISOString().split('T')[0]; // Voltar para hoje
+  mentorias.value = [];
+  mentoriaSelecionada.value = null;
   showSnackbar('Filtros limpos!', 'info');
 };
 
-const filtrarMentorias = () => {
-  // A filtragem é feita automaticamente pelo computed property
-  // Podemos adicionar um feedback visual se os filtros resultarem em 0 mentorias
-  if (mentoriasFiltradas.value.length === 0 && !carregando.value) {
-    // showSnackbar('Nenhuma mentoria encontrada com os filtros atuais.', 'info'); // Opcional
-  }
+const limparDisciplina = () => {
+  filtros.value.disciplina = null;
+  disciplinaSelecionada.value = null;
+  mentorias.value = [];
+  mentoriaSelecionada.value = null;
 };
 
-const agendarMentoria = () => {
+const limparData = () => {
+  dataSelecionada.value = new Date().toISOString().split('T')[0]; // Voltar para hoje
+
+  // Se há uma disciplina selecionada, buscar mentorias para hoje
+  if (disciplinaSelecionada.value) {
+    buscarMentorias(disciplinaSelecionada.value.disciplineId, dataSelecionada.value);
+  }
+
+  mentoriaSelecionada.value = null;
+};
+
+const agendarMentoria = (mentoria) => {
   if (!authStore.isAuthenticated) {
     router.push('/login');
-    // Usar o snackbar global aqui
     showSnackbar('Você precisa estar logado para agendar uma mentoria.', 'warning');
     return;
   }
 
-  if (!mentoriaSelecionada.value) {
-    // Usar o snackbar global aqui
+  if (!mentoria) {
     showSnackbar('Selecione uma mentoria para agendar.', 'warning');
     return;
+  }
+
+  // Definir a mentoria selecionada se não estiver definida
+  if (!mentoriaSelecionada.value || mentoriaSelecionada.value.id !== mentoria.id) {
+    mentoriaSelecionada.value = mentoria;
   }
 
   dialogConfirmacao.value = true;
 };
 
 const confirmarAgendamento = async () => {
-  if (!mentoriaSelecionada.value || !authStore.userId) {
-    // Usar o snackbar global aqui
+  if (!mentoriaSelecionada.value || !authStore.userId || !disciplinaSelecionada.value) {
     showSnackbar('Erro interno: dados da mentoria ou usuário ausentes.', 'error');
     return;
   }
 
   agendando.value = true;
   try {
-    // Implementação real:
-    // const payload = {
-    //   userId: authStore.userId,
-    //   topic: topicoMentoria.value || null
-    // };
-    // await joinTutoringSession(mentoriaSelecionada.value.id, payload);
+    const mentoria = mentoriaSelecionada.value;
+    const isScheduling = mentoria.status === 'A_MARCAR';
 
-    // Simulação para demonstração
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    if (isScheduling) {
+      if (!dataSelecionada.value) {
+        showSnackbar('Erro: Nenhuma data selecionada para agendamento.', 'error');
+        return;
+      }
 
-    // Usar o snackbar global aqui
-    showSnackbar('Mentoria agendada com sucesso! Verifique sua área de mentorias.', 'success', 5000); // Exibe por mais tempo
+      // CORREÇÃO: Validar a data antes de formatar
+      let dataFormatada;
+      if (typeof dataSelecionada.value === 'string') {
+        // Verificar se a string está no formato correto
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dataSelecionada.value)) {
+          showSnackbar('Erro: Formato de data inválido.', 'error');
+          return;
+        }
+        dataFormatada = dataSelecionada.value;
+      } else if (dataSelecionada.value instanceof Date) {
+        if (isNaN(dataSelecionada.value.getTime())) {
+          showSnackbar('Erro: Data inválida selecionada.', 'error');
+          return;
+        }
+        dataFormatada = dataSelecionada.value.toISOString().split('T')[0];
+      } else {
+        showSnackbar('Erro: Tipo de data inválido.', 'error');
+        return;
+      }
+
+      const payload = {
+        mentorId: mentoria.mentorId,
+        disciplineId: disciplinaSelecionada.value.disciplineId,
+        menteeId: parseInt(authStore.userId),
+        topic: topicoMentoria.value || null,
+        tutoringDate: dataFormatada, // Usar a data selecionada no calendário
+        startTime: mentoria.startTime,
+        endTime: mentoria.endTime,
+        tutoringClassType: mentoria.tutoringClassType
+      };
+
+      console.log('Agendando mentoria com payload:', payload);
+
+      await scheduleTutoring(payload);
+      showSnackbar('Mentoria agendada com sucesso! Aguarde a confirmação do mentor.', 'success', 5000);
+    } else {
+      // Participar de mentoria existente - usar a data da própria mentoria
+      const payload = {
+        userId: parseInt(authStore.userId),
+        topic: mentoria.status === 'EM_ANDAMENTO' ? null : (topicoMentoria.value || null)
+      };
+
+      await addParticipant(mentoria.id, payload);
+      showSnackbar('Você foi adicionado à mentoria com sucesso!', 'success', 5000);
+    }
+
     dialogConfirmacao.value = false;
     mentoriaSelecionada.value = null;
     topicoMentoria.value = '';
 
     // Recarregar mentorias após agendamento
-    await buscarMentorias();
+    if (disciplinaSelecionada.value && dataSelecionada.value) {
+      await buscarMentorias(disciplinaSelecionada.value.disciplineId, dataSelecionada.value);
+    }
   } catch (error) {
-    console.error('Erro ao agendar mentoria:', error);
-    // Usar o snackbar global aqui
-    const errorMessage = error.response?.data?.message || 'Erro ao agendar mentoria. Tente novamente.';
-    showSnackbar(errorMessage, 'error', 5000); // Exibe por mais tempo
+    console.error('Erro ao agendar/participar da mentoria:', error);
+    const errorMessage = error.response?.data?.message || 'Erro ao processar solicitação. Tente novamente.';
+    showSnackbar(errorMessage, 'error', 5000);
   } finally {
     agendando.value = false;
   }
 };
 
+const cancelarAgendamento = () => {
+  dialogConfirmacao.value = false;
+  topicoMentoria.value = '';
+};
+
+const sairMentoria = async (mentoria) => {
+  if (!mentoria || !authStore.userId) {
+    showSnackbar('Erro interno: dados da mentoria ou usuário ausentes.', 'error');
+    return;
+  }
+
+  if (!window.confirm('Tem certeza que deseja sair desta mentoria? Esta ação não pode ser desfeita.')) {
+    return;
+  }
+
+  saindoMentoria.value = true;
+  try {
+    await leaveTutoring(mentoria.id, parseInt(authStore.userId));
+    showSnackbar('Você saiu da mentoria com sucesso!', 'success');
+
+    // Forçar refresh completo
+    await forcarRefreshMentorias();
+
+  } catch (error) {
+    console.error('Erro ao sair da mentoria:', error);
+    const errorMessage = error.response?.data?.message || 'Erro ao sair da mentoria. Tente novamente.';
+    showSnackbar(errorMessage, 'error');
+  } finally {
+    saindoMentoria.value = false;
+  }
+};
+
+const forcarRefreshMentorias = async () => {
+  if (!disciplinaSelecionada.value || !dataSelecionada.value) return;
+
+  console.log('=== FORÇANDO REFRESH COMPLETO ===');
+
+  // Limpar tudo primeiro
+  mentorias.value = [];
+  mentoriaSelecionada.value = null;
+
+  // Aguardar um pouco
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Buscar novamente
+  try {
+    carregandoMentorias.value = true;
+    const response = await getAvailableTutoringsForUserAndDiscipline(
+      authStore.userId,
+      disciplinaSelecionada.value.disciplineId,
+      dataSelecionada.value
+    );
+
+    console.log('Dados recarregados:', response.data);
+    mentorias.value = response.data || [];
+
+  } catch (error) {
+    console.error('Erro ao forçar refresh:', error);
+  } finally {
+    carregandoMentorias.value = false;
+  }
+
+  console.log('=== FIM REFRESH COMPLETO ===');
+};
+
 const formatarData = (dataString) => {
   if (!dataString) return '';
+  
+  // Se já é uma instância de Date
+  if (dataString instanceof Date) {
+    if (isNaN(dataString.getTime())) {
+      console.warn('formatarData: data inválida:', dataString);
+      return 'Data inválida';
+    }
+    return dataString.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+   // Se não é string, retornar erro
+  if (typeof dataString !== 'string') {
+    console.warn('formatarData: entrada inválida:', dataString);
+    return 'Data inválida';
+  }
 
-  const data = new Date(dataString);
+  // Verificar se já está no formato brasileiro DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataString)) {
+    return dataString;
+  }
+  
+  // Verificar se está no formato ISO YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dataString)) {
+    const [year, month, day] = dataString.split('-').map(Number);
+    return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+  }
+  
+  // Para outros formatos, tentar converter (mas cuidado com timezone)
+  const data = new Date(dataString + 'T00:00:00'); // Forçar horário local
+  
+  if (isNaN(data.getTime())) {
+    console.warn('formatarData: não foi possível converter a data:', dataString);
+    return dataString;
+  }
+
   return data.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -424,65 +490,23 @@ const formatarData = (dataString) => {
   });
 };
 
-// Função para gerar dados simulados (mantida para teste)
-const gerarMentoriasSimuladas = () => {
-  const mentoriasSimuladas = [];
-  const disciplinasSimuladas = [
-    { id: 1, disciplineName: 'Cálculo I', mentorName: 'João Silva' },
-    { id: 2, disciplineName: 'Programação Orientada a Objetos', mentorName: 'Maria Oliveira' },
-    { id: 3, disciplineName: 'Estrutura de Dados', mentorName: 'Pedro Santos' },
-    { id: 4, disciplineName: 'Banco de Dados', mentorName: 'Ana Costa' },
-    { id: 5, disciplineName: 'Inteligência Artificial', mentorName: 'Carlos Ferreira' }
-  ];
-
-  const tipos = ['ONLINE', 'PRESENCIAL'];
-  const locais = ['Sala B203', 'Laboratório de Informática', 'Biblioteca Central', 'Sala de Estudos'];
-  const links = ['https://meet.google.com/abc-def-ghi', 'https://zoom.us/j/123456789', 'https://teams.microsoft.com/l/meetup-join/123'];
-
-  // Gerar 20 mentorias para os próximos 30 dias
-  for (let i = 0; i < 20; i++) {
-    const disciplina = disciplinasSimuladas[Math.floor(Math.random() * disciplinasSimuladas.length)];
-    const tipo = tipos[Math.floor(Math.random() * tipos.length)];
-
-    // Data aleatória nos próximos 30 dias
-    const dataFutura = new Date();
-    dataFutura.setDate(dataFutura.getDate() + Math.floor(Math.random() * 30));
-
-    // Horário aleatório entre 8h e 18h
-    const horaInicio = `${8 + Math.floor(Math.random() * 10)}:00`;
-    const horaFim = `${parseInt(horaInicio) + 1}:00`;
-
-    const mentoria = {
-      id: i + 1,
-      disciplineId: disciplina.id,
-      disciplineName: disciplina.disciplineName,
-      mentorName: disciplina.mentorName,
-      tutoringDate: dataFutura.toISOString().split('T')[0],
-      startTime: horaInicio,
-      endTime: horaFim,
-      tutoringClassType: tipo,
-      maxParticipants: 5 + Math.floor(Math.random() * 5),
-      qtdParticipants: Math.floor(Math.random() * 5),
-      description: `Mentoria de ${disciplina.disciplineName} com foco em resolução de exercícios e esclarecimento de dúvidas.`
-    };
-
-    if (tipo === 'PRESENCIAL') {
-      mentoria.local = locais[Math.floor(Math.random() * locais.length)];
-    } else {
-      mentoria.linkVideo = links[Math.floor(Math.random() * links.length)];
-    }
-
-    mentoriasSimuladas.push(mentoria);
+// Watchers
+watch(() => filtros.value.disciplina, (newDisciplineId) => {
+  if (newDisciplineId && disciplinaSelecionada.value && dataSelecionada.value) {
+    buscarMentorias(newDisciplineId, dataSelecionada.value);
   }
-
-  return mentoriasSimuladas;
-};
+});
 
 onMounted(async () => {
-  await Promise.all([
-    buscarMentorias(),
-    buscarDisciplinas()
-  ]);
+  await buscarDisciplinas();
+
+  // Se vier com disciplineId na query, selecionar automaticamente
+  const disciplineIdFromQuery = router.currentRoute.value.query.disciplineId;
+  if (disciplineIdFromQuery && disciplinas.value.length > 0) {
+    const disciplineId = parseInt(disciplineIdFromQuery);
+    filtros.value.disciplina = disciplineId;
+    handleDisciplinaChange(disciplineId);
+  }
 });
 </script>
 
@@ -491,13 +515,5 @@ onMounted(async () => {
   text-align: center;
   padding: 20px;
   font-family: 'Advent Pro';
-}
-
-.v-list-item--active {
-  background-color: rgba(0, 74, 173, 0.1);
-}
-
-.v-card-title.bg-primary {
-  color: white;
 }
 </style>
