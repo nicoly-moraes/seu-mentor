@@ -41,6 +41,8 @@
             flat
             hide-details
             single-line
+            v-model="searchTerm"
+            @input="updateSearch"
           ></v-text-field>
         </div>
 
@@ -68,25 +70,17 @@
         </div>
 
         <div class="nav-right-mobile" v-if="!isAuthenticated">
-          <v-menu
-            v-model="menu"
-            location="bottom"
-          >
+          <v-menu v-model="menu" location="bottom">
             <template v-slot:activator="{ props }">
-              <v-btn
-                color="indigo"
-                v-bind="props"
-                icon="mdi-account"
-              >
-              </v-btn>
+              <v-btn color="indigo" v-bind="props" icon="mdi-account"> </v-btn>
             </template>
 
             <v-card>
               <v-list class="btn-list">
-                <v-list-item >
+                <v-list-item>
                   <v-btn block class="btn-login" color="primary" variant="flat" to="/login">Entrar</v-btn>
                 </v-list-item>
-                <v-list-item >
+                <v-list-item>
                   <v-btn block class="btn-cadastre text-primary" variant="text" to="/cadastre">Cadastre-se</v-btn>
                 </v-list-item>
               </v-list>
@@ -122,6 +116,8 @@
           flat
           hide-details
           single-line
+          v-model="searchTerm"
+          @input="updateSearch"
         ></v-text-field>
       </div>
     </div>
@@ -130,29 +126,49 @@
 
 <script lang="ts">
 import { useAuthStore } from '@/stores/auth';
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, watch } from 'vue'; // Importe watch
+import { useRouter, useRoute } from 'vue-router'; // Importe useRoute também
 
 export default {
-  name: "AppHeader", // Se você tiver outros componentes sendo usados aqui
-  data() {
-    return {
-      menu: false,
-    };
-  },
-  computed: {
-    isAuthenticated() {
-      const authStore = useAuthStore();
-      return authStore.isAuthenticated;
-    },
-  },
-  methods: {
-    logout() {
-      const authStore = useAuthStore();
-      const router = useRouter();
+  name: "AppHeader",
+  setup() {
+    const authStore = useAuthStore();
+    const router = useRouter();
+    const route = useRoute(); // Para ler os parâmetros da rota
+    const searchTerm = ref(''); // Estado para o termo de pesquisa
+
+    const isAuthenticated = computed(() => authStore.isAuthenticated);
+
+    const logout = () => {
       authStore.logout();
       router.push('/login');
-    },
+    };
+
+    // Função para atualizar o parâmetro de busca na URL
+    const updateSearch = () => {
+      // Verifica se o termo de pesquisa é diferente do que já está na URL
+      if (searchTerm.value !== route.query.search) {
+        // Usa `router.replace` para evitar adicionar muitas entradas ao histórico do navegador
+        // e atualiza apenas o query parameter 'search'
+        router.replace({ path: '/discipline', query: { search: searchTerm.value || undefined } });
+        // `searchTerm.value || undefined` remove o parâmetro 'search' da URL se o campo estiver vazio
+      }
+    };
+
+    // Observa a mudança do parâmetro de busca na URL (ex: se o usuário navegar de volta)
+    watch(() => route.query.search, (newSearchTerm) => {
+      if (newSearchTerm !== searchTerm.value) {
+        searchTerm.value = newSearchTerm as string;
+      }
+    }, { immediate: true }); // Executa imediatamente para sincronizar na montagem
+
+    return {
+      menu: ref(false),
+      isAuthenticated,
+      logout,
+      searchTerm,
+      updateSearch, // Expõe a função para o template
+    };
   },
 };
 </script>

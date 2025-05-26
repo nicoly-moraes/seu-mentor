@@ -1,7 +1,7 @@
 <template>
   <h1 class="titulo">MENTORIAS</h1>
   <v-row class="principal px-0">
-    <v-col lg="3" md="4" xs="6" v-for="disciplina in disciplines":key="disciplina.disciplineId">
+    <v-col lg="3" md="4" xs="6" v-for="disciplina in filteredDisciplines" :key="disciplina.disciplineId">
       <v-card class="card mx-auto" variant="outlined" width="300">
         <v-card-title class="card-titulo">
           {{ disciplina.disciplineName }}
@@ -25,12 +25,23 @@
         </div>
       </v-card>
     </v-col>
+    <v-col v-if="filteredDisciplines.length === 0 && !loading">
+      <p class="text-center">Nenhuma mentoria encontrada para sua pesquisa.</p>
+    </v-col>
+    <v-col v-if="loading">
+      <p class="text-center">Carregando mentorias...</p>
+    </v-col>
+    <v-col v-if="error">
+      <p class="text-center text-red">{{ error }}</p>
+    </v-col>
   </v-row>
 </template>
 
 <script lang="ts">
 import { getAllDisciplines } from '@/services/disciplineService';
 import { useAuthStore } from '@/stores/auth';
+import { useRoute, useRouter } from 'vue-router';
+import { ref, computed, watch } from 'vue';
 
 interface Discipline {
   disciplineId: number;
@@ -42,69 +53,91 @@ interface Discipline {
 
 export default {
   name: "discipline",
-  data() {
-    return {
-      disciplines: [] as Discipline[],
-      loading: false,
-      error: null as string | null,
-    };
-  },
-  mounted() {
-    this.fetchDisciplines();
-  },
-  methods: {
-    async fetchDisciplines(courseAreaId?: number) {
-      this.loading = true;
-      this.error = null;
+  setup() {
+    const authStore = useAuthStore();
+    const route = useRoute();
+    const router = useRouter();
+
+    const disciplines = ref<Discipline[]>([]);
+    const loading = ref(false);
+    const error = ref<string | null>(null);
+
+    const fetchDisciplines = async (courseAreaId?: number) => {
+      loading.value = true;
+      error.value = null;
 
       try {
         const params = courseAreaId ? { courseAreaId } : {};
         const response = await getAllDisciplines(params);
-        this.disciplines = response.data;
-        console.log("[DisciplinePage] Disciplinas carregadas:", this.disciplines);
+        disciplines.value = response.data;
+        console.log("[DisciplinePage] Disciplinas carregadas:", disciplines.value);
       } catch (err: any) {
         console.error("Erro ao buscar disciplinas:", err);
-        this.error =
+        error.value =
           err.response?.data?.message ||
           err.message ||
           "Ocorreu um erro ao carregar as disciplinas.";
       } finally {
-        this.loading = false;
+        loading.value = false;
       }
-    },
-    
-    // Método para navegar para a página de agendamento
-    irParaAgendamento(disciplineId: number, courseName: String) {
-      const authStore = useAuthStore();
-      if (authStore.isAuthenticated) {
-        // Navega para /agendamento com o ID da disciplina como query parameter
-        this.$router.push({ path: '/agendamento', query: { 
-          disciplineId: disciplineId.toString(),
-          courseName: courseName } });
-      } else {
-        // Se não estiver autenticado, redireciona para a página de cadastro
-        this.$router.push('/cadastre');
-      }
-    },
+    };
 
-    // Novo método para navegar para disponibilidades com disciplina pré-selecionada
-    irParaSejaMentor(disciplineId: number, disciplineName: string) {
-      const authStore = useAuthStore();
+    const filteredDisciplines = computed(() => {
+      const searchTerm = route.query.search as string;
+      if (!searchTerm) {
+        return disciplines.value;
+      }
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      return disciplines.value.filter(discipline =>
+        discipline.disciplineName.toLowerCase().includes(lowerCaseSearchTerm) ||
+        discipline.description.toLowerCase().includes(lowerCaseSearchTerm) ||
+        discipline.courseName.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    });
+
+    // O `watch` para `route.query.search` já está configurado para reagir às mudanças
+    // e o `filteredDisciplines` computa automaticamente os resultados.
+    watch(() => route.query.search, () => {
+      // Não precisa de lógica aqui, pois filteredDisciplines já é reativo
+      // e reflete a mudança no query parameter.
+    }, { immediate: true });
+
+    fetchDisciplines();
+
+    const irParaAgendamento = (disciplineId: number, courseName: string) => {
       if (authStore.isAuthenticated) {
-        // Navega para /perfil com a seção de disponibilidades e disciplina pré-selecionada
-        this.$router.push({ 
-          path: '/perfil', 
-          query: { 
+        router.push({ path: '/agendamento', query: {
+          disciplineId: disciplineId.toString(),
+          courseName: courseName
+        }});
+      } else {
+        router.push('/cadastre');
+      }
+    };
+
+    const irParaSejaMentor = (disciplineId: number, disciplineName: string) => {
+      if (authStore.isAuthenticated) {
+        router.push({
+          path: '/perfil',
+          query: {
             section: 'disponibilidades',
             disciplineId: disciplineId.toString(),
             disciplineName: disciplineName
-          } 
+          }
         });
       } else {
-        // Se não estiver autenticado, redireciona para a página de cadastro
-        this.$router.push('/cadastre');
+        router.push('/cadastre');
       }
-    },
+    };
+
+    return {
+      disciplines,
+      filteredDisciplines,
+      loading,
+      error,
+      irParaAgendamento,
+      irParaSejaMentor,
+    };
   },
 };
 </script>
