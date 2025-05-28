@@ -19,6 +19,7 @@ declare module 'vue' {
     EditMentoringSessionDialog: typeof import('./components/profile/EditMentoringSessionDialog.vue')['default']
     MentoriaCard: typeof import('./components/MentoriaCard.vue')['default']
     MentoriaConfirmationDialog: typeof import('./components/profile/MentoriaConfirmationDialog.vue')['default']
+    MentoringDetailsDialog: typeof import('./components/profile/MentoringDetailsDialog.vue')['default']
     ProfileSectionConta: typeof import('./components/profile/ProfileSectionConta.vue')['default']
     ProfileSectionDisponibilidades: typeof import('./components/profile/ProfileSectionDisponibilidades.vue')['default']
     ProfileSectionInicio: typeof import('./components/profile/ProfileSectionInicio.vue')['default']

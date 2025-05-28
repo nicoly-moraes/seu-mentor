@@ -35,7 +35,7 @@
           <v-text-field
             class="search"
             density="compact"
-            label="Search"
+            label="pesquise sua mentoria"
             prepend-inner-icon="mdi-magnify"
             variant="solo-filled"
             flat
@@ -110,7 +110,7 @@
       <div class="search-mobile">
         <v-text-field
           density="compact"
-          label="Search"
+          label="pesquise sua mentoria"
           prepend-inner-icon="mdi-magnify"
           variant="solo-filled"
           flat
