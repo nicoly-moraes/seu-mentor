@@ -75,6 +75,7 @@
             <v-card-actions class="pa-3">
               <v-spacer></v-spacer>
               <v-btn
+                v-if="session.status !== 'CONCLUIDA'"
                 color="error"
                 variant="outlined"
                 prepend-icon="mdi-logout"
@@ -96,6 +97,25 @@
         </v-card>
       </v-col>
     </v-row>
+    <v-snackbar
+    v-model="snackbar.show"
+    :color="snackbar.color"
+    :timeout="snackbar.timeout"
+    location="top"
+    rounded="pill"
+    variant="elevated"
+  >
+    {{ snackbar.message }}
+    <template v-slot:actions>
+      <v-btn
+        color="white"
+        variant="text"
+        @click="snackbar.show = false"
+      >
+        Fechar
+      </v-btn>
+    </template>
+  </v-snackbar>
   </div>
 </template>
 
@@ -115,6 +135,19 @@ const emit = defineEmits(['session-left', 'operation-success', 'operation-error'
 
 const authStore = useAuthStore();
 const isLeavingTutoring = ref(null);
+
+// --- State for Snackbar (Toast) ---
+const snackbar = ref({
+  show: false,
+  message: '',
+  color: '',
+  timeout: 5000,
+});
+
+// Function to display the snackbar
+const showSnackbar = (message, color = 'info', timeout = 5000) => {
+  snackbar.value = { show: true, message, color, timeout };
+};
 
 async function handleLeaveTutoring(tutoringId) {
   if (!window.confirm("Você tem certeza que deseja sair desta mentoria? Esta ação não pode ser desfeita.")) {
