@@ -3,10 +3,7 @@
     <h1 class="titulo text-h4 mb-6 font-weight-bold">Minhas Mentorias (Mentorado)</h1>
 
     <v-row>
-      <v-col
-          cols="12"
-          class="btn"
-      >
+      <v-col cols="12" class="btn">
         <v-btn
           class="btn"
           variant="flat"
@@ -25,69 +22,145 @@
         </v-card>
 
         <template v-else-if="props.participationSessions.length > 0">
-          <v-card
-            v-for="session in props.participationSessions"
-            :key="session.id"
-            class="mb-4"
-            elevation="2"
-          >
-            <v-card-title class="d-flex justify-space-between align-center">
-              <div>
-                <span class="text-h6">{{ session.disciplineName }}</span>
-                <v-chip
-                  :color="props.getStatusColor(session.status)"
-                  size="small"
-                  class="ml-2"
-                  label
+          <v-list class="bg-transparent">
+            <v-list-item
+              v-for="session in props.participationSessions"
+              :key="session.id"
+              class="mb-2"
+              :class="{ 'list-item-expanded': expandedSession === session.id }"
+              @click="toggleExpansion(session.id)"
+            >
+
+
+              <v-list-item-title class="text-subtitle-1 font-weight-medium">
+                {{ session.disciplineName }}
+              </v-list-item-title>
+
+              <v-list-item-subtitle class="mt-1">
+                <div class="d-flex align-center flex-wrap ga-2">
+                  <v-chip
+                    :color="props.getStatusColor(session.status)"
+                    size="x-small"
+                    label
+                  >
+                    {{ session.status }}
+                  </v-chip>
+                  <span class="text-caption">{{ session.mentorName }}</span>
+                  <span class="text-caption">{{ props.formatDate(session.tutoringDate) }}</span>
+                  <span class="text-caption">{{ session.startTime }}</span>
+                </div>
+              </v-list-item-subtitle>
+
+              <template v-slot:append>
+                <v-icon 
+                  :class="{ 'rotate-icon': expandedSession === session.id }"
+                  class="transition-transform"
                 >
-                  {{ session.status }}
-                </v-chip>
-              </div>
-              <v-chip size="small" :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'" label>
-                {{ session.tutoringClassType }}
-              </v-chip>
-            </v-card-title>
+                  mdi-chevron-down
+                </v-icon>
+              </template>
 
-            <v-card-text>
-              <v-row>
-                <v-col cols="12" md="6">
-                  <p><v-icon class="mr-1" small>mdi-account</v-icon> <strong>Mentor:</strong> {{ session.mentorName }}</p>
-                  <p><v-icon class="mr-1" small>mdi-calendar</v-icon> <strong>Data:</strong> {{ props.formatDate(session.tutoringDate) }}</p>
-                  <p><v-icon class="mr-1" small>mdi-clock-outline</v-icon> <strong>Horário:</strong> {{ session.startTime }} - {{ session.endTime }}</p>
-                </v-col>
+              <!-- Expansion Panel Content -->
+              <v-expand-transition>
+                <div v-if="expandedSession === session.id" class="expansion-content mt-4">
+                  <v-divider class="mb-4"></v-divider>
+                  
+                  <v-row>
+                    <v-col cols="12" md="6">
+                      <div class="detail-item">
+                        <v-icon class="mr-2" size="small">mdi-account</v-icon>
+                        <strong>Mentor:</strong> {{ session.mentorName }}
+                      </div>
+                      
+                      <div class="detail-item">
+                        <v-icon class="mr-2" size="small">mdi-calendar</v-icon>
+                        <strong>Data:</strong> {{ props.formatDate(session.tutoringDate) }}
+                      </div>
+                      
+                      <div class="detail-item">
+                        <v-icon class="mr-2" size="small">mdi-clock-outline</v-icon>
+                        <strong>Horário:</strong> {{ session.startTime }} - {{ session.endTime }}
+                      </div>
 
-                <v-col cols="12" md="6">
-                  <p v-if="session.local"><v-icon class="mr-1" small>mdi-map-marker</v-icon> <strong>Local:</strong> {{ session.local }}</p>
-                  <p v-if="session.linkVideo">
-                    <v-icon class="mr-1" small>mdi-video</v-icon>
-                    <strong>Link:</strong>
-                    <a :href="session.linkVideo" target="_blank" rel="noopener noreferrer" class="text-decoration-none">Acessar aula</a>
-                  </p>
-                  <p><v-icon class="mr-1" small>mdi-account-group</v-icon> <strong>Participantes:</strong> {{ session.qtdParticipants }} / {{ session.maxParticipants }}</p>
-                  <p v-if="session.topics && session.topics.length > 0">
-                    <v-icon class="mr-1" small>mdi-tag-multiple</v-icon>
-                    <strong>Tópicos:</strong> {{ session.topics.join(', ') }}
-                  </p>
-                </v-col>
-              </v-row>
-            </v-card-text>
+                      <div class="detail-item">
+                        <v-icon class="mr-2" size="small">mdi-account-group</v-icon>
+                        <strong>Participantes:</strong> {{ session.maxParticipants }}
+                      </div>
+                    </v-col>
 
-            <v-card-actions class="pa-3">
-              <v-spacer></v-spacer>
-              <v-btn
-                v-if="session.status !== 'CONCLUIDA'"
-                color="error"
-                variant="outlined"
-                prepend-icon="mdi-logout"
-                @click="handleLeaveTutoring(session.id)"
-                :loading="isLeavingTutoring === session.id"
-                :disabled="isLeavingTutoring === session.id"
-              >
-                Sair da Mentoria
-              </v-btn>
-            </v-card-actions>
+                    <v-col cols="12" md="6">
+                      <div v-if="session.local" class="detail-item">
+                        <v-icon class="mr-2" size="small">mdi-map-marker</v-icon>
+                        <strong>Local:</strong> {{ session.local }}
+                      </div>
+                      
+                      <div v-if="session.linkVideo && session.linkVideo !== 'Não se aplica'" class="detail-item">
+                        <v-icon class="mr-2" size="small">mdi-video</v-icon>
+                        <strong>Link:</strong>
+                        <a 
+                          :href="session.linkVideo" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          class="text-decoration-none ml-1"
+                          @click.stop
+                        >
+                          Acessar aula
+                        </a>
+                      </div>
 
-          </v-card>
+                      <div class="detail-item">
+                        <v-chip
+                          size="small" 
+                          :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'" 
+                          label
+                        >
+                          {{ session.tutoringClassType }}
+                        </v-chip>
+                      </div>
+                    </v-col>
+                  </v-row>
+
+                  <div v-if="session.topics && session.topics.length > 0" class="topics-section mt-4">
+                    <div class="topics-header mb-2">
+                      <v-icon class="mr-2" size="small">mdi-tag-multiple</v-icon>
+                      <strong>Tópicos:</strong>
+                    </div>
+                    <div class="topics-container">
+                      <v-chip
+                        v-for="(topic, index) in session.topics"
+                        :key="index"
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        class="ma-1"
+                        label
+                      >
+                        {{ topic }}
+                      </v-chip>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <v-row class="mt-4" justify="end">
+                    <v-col cols="auto">
+                      <v-btn
+                        v-if="session.status !== 'CONCLUIDA'"
+                        color="error"
+                        variant="outlined"
+                        prepend-icon="mdi-logout"
+                        @click.stop="handleLeaveTutoring(session.id)"
+                        :loading="isLeavingTutoring === session.id"
+                        :disabled="isLeavingTutoring === session.id"
+                        size="small"
+                      >
+                        Sair da Mentoria
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </div>
+              </v-expand-transition>
+            </v-list-item>
+          </v-list>
         </template>
 
         <v-card v-else class="text-center pa-6">
@@ -97,25 +170,26 @@
         </v-card>
       </v-col>
     </v-row>
+
     <v-snackbar
-    v-model="snackbar.show"
-    :color="snackbar.color"
-    :timeout="snackbar.timeout"
-    location="top"
-    rounded="pill"
-    variant="elevated"
-  >
-    {{ snackbar.message }}
-    <template v-slot:actions>
-      <v-btn
-        color="white"
-        variant="text"
-        @click="snackbar.show = false"
-      >
-        Fechar
-      </v-btn>
-    </template>
-  </v-snackbar>
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="snackbar.timeout"
+      location="top"
+      rounded="pill"
+      variant="elevated"
+    >
+      {{ snackbar.message }}
+      <template v-slot:actions>
+        <v-btn
+          color="white"
+          variant="text"
+          @click="snackbar.show = false"
+        >
+          Fechar
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
@@ -135,6 +209,7 @@ const emit = defineEmits(['session-left', 'operation-success', 'operation-error'
 
 const authStore = useAuthStore();
 const isLeavingTutoring = ref(null);
+const expandedSession = ref(null);
 
 // --- State for Snackbar (Toast) ---
 const snackbar = ref({
@@ -143,6 +218,11 @@ const snackbar = ref({
   color: '',
   timeout: 5000,
 });
+
+// Function to toggle expansion
+const toggleExpansion = (sessionId) => {
+  expandedSession.value = expandedSession.value === sessionId ? null : sessionId;
+};
 
 // Function to display the snackbar
 const showSnackbar = (message, color = 'info', timeout = 5000) => {
@@ -181,7 +261,6 @@ async function handleLeaveTutoring(tutoringId) {
     let errorMessage = "Ocorreu um erro ao tentar sair da mentoria.";
 
     if (error.response) {
-      // Use the error message from the backend if available
       errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
       switch(error.response.status) {
         case 400:
@@ -223,7 +302,62 @@ async function handleLeaveTutoring(tutoringId) {
   justify-content: end;
 }
 
-.v-card-actions .v-btn {
-  text-transform: none;
+.v-list-item {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 16px;
+}
+
+.v-list-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.list-item-expanded {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rotate-icon {
+  transform: rotate(180deg);
+}
+
+.transition-transform {
+  transition: transform 0.3s ease;
+}
+
+.expansion-content {
+  padding: 0 16px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+.topics-section {
+  margin-top: 16px;
+}
+
+.topics-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.topics-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.v-expand-transition-enter-active,
+.v-expand-transition-leave-active {
+  transition: all 0.3s ease;
 }
 </style>
