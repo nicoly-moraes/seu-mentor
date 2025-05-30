@@ -1,9 +1,11 @@
+import { Client } from '@stomp/stompjs';
+
 class MentorChatClient {
   constructor(config = {}) {
     this.config = {
       brokerURL:
         config.brokerURL ||
-        `ws://${window.location.host}/buildrun-livechat-websocket`,
+        `ws://localhost:8080/buildrun-livechat-websocket`,
       reconnectDelay: config.reconnectDelay || 5000,
       heartbeatIncoming: config.heartbeatIncoming || 4000,
       heartbeatOutgoing: config.heartbeatOutgoing || 4000,
@@ -21,14 +23,31 @@ class MentorChatClient {
       onDisconnect: [],
       onError: [],
     };
+
+    // Função para atualizar o token antes de conectar
+    this.beforeConnect = () => {
+      const token = localStorage.getItem('authToken');
+      if (token && this.stompClient) {
+        this.stompClient.connectHeaders = {
+          ...this.stompClient.connectHeaders,
+          Authorization: `Bearer ${token}`
+        };
+      }
+    };
   }
 
   // Configurar informações do usuário atual
-  setCurrentUser(userId, userInfo = {}) {
+  setCurrentUser(userId = null, userInfo = {}) {
+    const storedUserId = userId || localStorage.getItem('userId');
+    if (!storedUserId) {
+      console.error('ID do usuário não fornecido e não encontrado no localStorage');
+      return false;
+    }
     this.currentUser = {
-      id: userId,
+      id: storedUserId,
       ...userInfo,
     };
+    return true;
   }
 
   // Configurar a mentoria atual
@@ -43,10 +62,17 @@ class MentorChatClient {
       return Promise.resolve();
     }
 
+    // Pegar o token do localStorage
+    const token = localStorage.getItem('authToken');
+    const connectHeaders = {
+      ...this.config.headers,
+      ...(token && { Authorization: `Bearer ${token}` })
+    };
+
     return new Promise((resolve, reject) => {
-      this.stompClient = new StompJs.Client({
+      this.stompClient = new Client({
         brokerURL: this.config.brokerURL,
-        connectHeaders: this.config.headers || {},
+        connectHeaders: connectHeaders,
         debug: (str) => {
           if (this.config.debug) {
             console.log("[STOMP Debug]", str);
@@ -55,6 +81,7 @@ class MentorChatClient {
         reconnectDelay: this.config.reconnectDelay,
         heartbeatIncoming: this.config.heartbeatIncoming,
         heartbeatOutgoing: this.config.heartbeatOutgoing,
+        beforeConnect: this.beforeConnect,
       });
 
       this.stompClient.onConnect = (frame) => {
@@ -85,6 +112,27 @@ class MentorChatClient {
 
       this.stompClient.activate();
     });
+  }
+
+  // Método de inicialização conveniente
+  async initialize() {
+    try {
+      // Configurar usuário automaticamente
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      this.setCurrentUser(userId);
+      
+      // Conectar
+      await this.connect();
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao inicializar chat:', error);
+      throw error;
+    }
   }
 
   // Desconectar do WebSocket
@@ -126,8 +174,8 @@ class MentorChatClient {
 
     // Inscrever-se no canal privado se especificado
     if (options.privateWith && this.currentUser) {
-      const userAId = Math.min(this.currentUser.id, options.privateWith);
-      const userBId = Math.max(this.currentUser.id, options.privateWith);
+      const userAId = Math.min(Number(this.currentUser.id), Number(options.privateWith));
+      const userBId = Math.max(Number(this.currentUser.id), Number(options.privateWith));
       const privateTopic = `/topic/tutoring/${tutoringId}/private/${userAId}-${userBId}`;
 
       const privateSub = this._subscribe(privateTopic, (message) => {
@@ -168,11 +216,11 @@ class MentorChatClient {
     }
 
     const chatInput = {
-      tutoringId: tutoringId,
-      senderId: this.currentUser.id,
+      tutoringId: Number(tutoringId),
+      senderId: Number(this.currentUser.id),
       message: message,
       type: type.toUpperCase(),
-      receiverId: receiverId,
+      receiverId: receiverId ? Number(receiverId) : null,
     };
 
     const destination = `/app/chat/tutoring/${tutoringId}/send`;
@@ -260,8 +308,20 @@ class MentorChatClient {
     }
     return false;
   }
+
+  // Método auxiliar para reconectar com token atualizado
+  async reconnect() {
+    this.disconnect();
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Aguardar 1 segundo
+    return this.connect();
+  }
+
+  // Limpar dados do usuário (útil para logout)
+  clearUserData() {
+    this.currentUser = null;
+    this.currentTutoringId = null;
+    this.disconnect();
+  }
 }
 
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = MentorChatClient;
-}
+export default MentorChatClient;
