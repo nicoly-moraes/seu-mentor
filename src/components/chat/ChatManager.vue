@@ -207,8 +207,11 @@ defineExpose({
 }
 
 .chat-fab {
+  position: fixed !important;
+  left: 16px;             
+  bottom: 16px;            
+  margin: 0 !important;      
   z-index: 1001;
-  margin: 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   transition: all 0.3s ease;
 }

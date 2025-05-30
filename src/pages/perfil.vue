@@ -68,10 +68,6 @@
       </v-col>
     </v-row>
 
-    <ChatManager
-      @messageReceived="handleChatMessage"
-      @connectionChanged="handleChatConnection"
-    />
     <MentoriaConfirmationDialog 
       v-if="editingTutoringSession"
       v-model="isConfirmationDialogVisible"
@@ -88,9 +84,6 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
-// Import useChatStore se você precisar interagir com o store do chat diretamente aqui,
-// embora o ChatManager deva encapsular a maior parte da lógica.
-// import { useChatStore } from '@/stores/chat'; 
 
 import {
   getUserData,
@@ -103,7 +96,7 @@ import {
   addMentorAvailability,
   deleteAvailability,
   deleteUser,
-  confirmTutoringSession // Presumindo que esta função ainda é usada pelo MentoriaConfirmationDialog
+  confirmTutoringSession
 } from '@/services/userService';
 import { getAllDisciplines } from '@/services/disciplineService';
 
@@ -116,17 +109,16 @@ import ProfileSectionMentoriasMentorado from '@/components/profile/ProfileSectio
 import ProfileSectionMentoriasMentor from '@/components/profile/ProfileSectionMentoriasMentor.vue';
 import ProfileSectionDisponibilidades from '@/components/profile/ProfileSectionDisponibilidades.vue';
 import ProfileSectionConta from '@/components/profile/ProfileSectionConta.vue';
-import MentoriaConfirmationDialog from '@/components/profile/MentoriaConfirmationDialog.vue'; // Verifique se este componente ainda é usado como previsto
+import MentoriaConfirmationDialog from '@/components/profile/MentoriaConfirmationDialog.vue';
 
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-// const chatStore = useChatStore(); // Descomente se precisar acessar o chatStore aqui
 
 const userData = ref(null);
 const mentorAvailabilities = ref([]);
-const participationSessions = ref([]); // Ainda necessário para ProfileSectionInicio e ProfileSectionMentoriasMentorado
-const mentoringSessionsAsMentor = ref([]); // Ainda necessário para ProfileSectionInicio e ProfileSectionMentoriasMentor
+const participationSessions = ref([]);
+const mentoringSessionsAsMentor = ref([]);
 const disciplines = ref([]);
 
 const activeSection = ref('inicio');
@@ -207,8 +199,6 @@ const fetchMentorAvailabilities = async () => {
   }
 };
 
-// Estas funções continuam sendo necessárias para as seções do perfil que exibem essas informações.
-// O ChatManager buscará esses dados de forma independente para o chat.
 const fetchParticipationSessions = async () => {
   isLoadingParticipationSessions.value = true;
   try {
@@ -407,31 +397,22 @@ const openConfirmationForm = (session) => {
   isConfirmationDialogVisible.value = true;
 };
 
-// Esta função e o MentoriaConfirmationDialog podem precisar ser revisados
-// se a lógica de confirmação/atualização de mentorias mudar ou for centralizada no store/outros componentes.
-const handleConfirmTutoringSession = async (sessionDataFromDialog) => { // Renomeado para evitar conflito com a função importada
+const handleConfirmTutoringSession = async (sessionDataFromDialog) => {
   if (!editingTutoringSession.value || !editingTutoringSession.value.id) return;
   isConfirmingSession.value = true;
   try {
-    // Supondo que 'confirmTutoringSession' é a chamada de API correta
     const updatedSession = await confirmTutoringSession(editingTutoringSession.value.id, sessionDataFromDialog);
     
-    // Atualiza a lista local de mentorias do mentor
     const index = mentoringSessionsAsMentor.value.findIndex(s => s.id === updatedSession.data.id);
     if (index !== -1) {
       mentoringSessionsAsMentor.value[index] = updatedSession.data;
     } else {
-      // Se não encontrar, pode ser uma nova sessão ou precisar recarregar
       fetchMentoringSessionsAsMentor();
     }
     
     handleOperationSuccess('Mentoria atualizada com sucesso!');
     isConfirmationDialogVisible.value = false;
     editingTutoringSession.value = null;
-    
-    // Notificar o chat store para recarregar as mentorias, se necessário
-    // Exemplo: chatStore.loadMentorias(); (se você importar e usar chatStore)
-    // Ou, se o ChatManager já tiver um mecanismo de atualização periódica ou via evento.
 
   } catch (error) {
     console.error('Erro ao confirmar/atualizar mentoria:', error);
@@ -441,7 +422,6 @@ const handleConfirmTutoringSession = async (sessionDataFromDialog) => { // Renom
   }
 };
 
-
 const handleMentoriaMentorAtualizada = (sessaoAtualizadaDoServidor) => {
   const index = mentoringSessionsAsMentor.value.findIndex(s => s.id === sessaoAtualizadaDoServidor.id);
   if (index !== -1) {
@@ -449,13 +429,10 @@ const handleMentoriaMentorAtualizada = (sessaoAtualizadaDoServidor) => {
   } else {
     fetchMentoringSessionsAsMentor();
   }
-  // O ChatManager deve recarregar seus dados através do chatStore se essa atualização for relevante para o chat.
-  // Ex: `chatStore.loadMentorias()` ou um evento que o ChatManager escute.
 };
 
 const handleSessionLeftMentorado = (tutoringId) => {
   participationSessions.value = participationSessions.value.filter(session => session.id !== tutoringId);
-  // O ChatManager deve recarregar seus dados através do chatStore se essa atualização for relevante para o chat.
 };
 
 const handleDeleteAccount = async () => {
@@ -465,7 +442,7 @@ const handleDeleteAccount = async () => {
     await deleteUser(authStore.userId);
     handleOperationSuccess('Conta excluída com sucesso. Você será redirecionado.');
     setTimeout(() => {
-      authStore.logout(); // Isso deve limpar o userId e acionar o clearAll no chatStore
+      authStore.logout();
       router.push('/login');
     }, 2000);
   } catch (error) {
@@ -477,28 +454,24 @@ const handleDeleteAccount = async () => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  // Verifica se a data já está no formato dd/mm/yyyy
   if (String(dateString).includes('/') && String(dateString).length === 10) {
       const parts = String(dateString).split('/');
       if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
           return dateString;
       }
   }
-  // Tenta converter de yyyy-mm-dd ou timestamp ISO
   try {
       const date = new Date(dateString);
-      if (isNaN(date.getTime())) throw new Error("Data inválida"); // Lança erro se a data não for válida
+      if (isNaN(date.getTime())) throw new Error("Data inválida");
 
       const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // Mês é base 0
+      const month = String(date.getMonth() + 1).padStart(2, '0');
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
   } catch (e) {
-      // Se a conversão falhar, retorna a string original ou um placeholder
       return dateString; 
   }
 };
-
 
 const formatDayOfWeek = (day) => {
   const days = {
@@ -513,15 +486,14 @@ const getStatusColor = (status) => {
   const statusColors = {
     'AGENDADA_ALUNO': 'warning',
     'PENDENTE_CONFIRMACAO_MENTOR': 'warning',
-    'PENDENTE': 'warning', // Genérico, pode ser usado por outros fluxos
-    'CONFIRMADA': 'success', // Ou 'AGENDADA' dependendo da semântica do seu sistema
-    'EM_ANDAMENTO': 'primary', // Se tiver status de "ao vivo"
-    'CONCLUIDA': 'info', // Ou 'FINALIZADA'
+    'PENDENTE': 'warning',
+    'CONFIRMADA': 'success',
+    'EM_ANDAMENTO': 'primary',
+    'CONCLUIDA': 'info',
     'CANCELADA': 'error'
   };
   return statusColors[status] || 'grey';
 };
-
 
 const diasDaSemana = [
   { value: 'SEGUNDA_FEIRA', text: 'Segunda-feira' }, { value: 'TERCA_FEIRA', text: 'Terça-feira' },
@@ -559,49 +531,29 @@ onMounted(async () => {
     await Promise.all([
       fetchUserData(),
       fetchMentorAvailabilities(),
-      fetchParticipationSessions(), // Ainda necessário para as seções do perfil
-      fetchMentoringSessionsAsMentor(), // Ainda necessário para as seções do perfil
+      fetchParticipationSessions(),
+      fetchMentoringSessionsAsMentor(),
       fetchDisciplines()
     ]);
     handleUrlParams();
-
-    // O ChatManager se autoinicializará com base na autenticação do authStore
-    // e sua prop autoConnect.
   } else {
     router.push('/login');
   }
 });
-
-// Handlers do Chat (mantidos para logging, podem ser removidos se não usados)
-const handleChatMessage = ({ message, mentoria }) => {
-  // console.log('Nova mensagem recebida em Perfil.vue:', message, 'na mentoria:', mentoria);
-  // O chatStore já lida com a mensagem. [cite: 35, 41]
-  // A notificação visual é feita pelo ChatManager/ChatNotification. [cite: 177, 366]
-};
-
-const handleChatConnection = (connected) => {
-  // console.log('Status de conexão do chat em Perfil.vue:', connected ? 'Conectado' : 'Desconectado');
-  // O ChatManager exibe um indicador de conexão. [cite: 191]
-};
 </script>
 
 <style scoped>
 .profile-sidebar {
-  min-height: calc(100vh - 64px); /* Considerando uma app-bar de 64px */
-  /* position: sticky; top: 64px; /* Para manter visível ao rolar, se a sidebar não for fixed */
+  min-height: calc(100vh - 64px);
 }
 
-.profile-sidebar-card { /* Se você envolver UserProfileSidebar em um v-card com esta classe */
+.profile-sidebar-card {
   position: sticky;
-  top: 64px; /* Altura da sua barra de navegação superior, ajuste se necessário */
-  /* max-height: calc(100vh - 64px); */
-  /* overflow-y: auto; */
+  top: 64px;
 }
-
 
 .profile-content {
-  min-height: calc(100vh - 64px); /* Ajuste conforme a altura do seu header */
-  /* padding: 16px; */ /* Adicione padding se necessário */
+  min-height: calc(100vh - 64px);
 }
 
 .h-100 {

@@ -21,7 +21,7 @@
       >
         <!-- Header da Sidebar -->
         <v-toolbar color="primary" dark flat class="sidebar-header">
-          <v-btn icon="mdi mdi-close" @click="close" class="close-button">
+          <v-btn icon="mdi mdi-close" class="close-button" @click="close">
             <v-icon>mdi-close</v-icon>
           </v-btn>
 
@@ -424,6 +424,7 @@ const toggleDrawer = () => {
 
 const close = () => {
   visible.value = false;
+  selectedChat.value = null; // Redefine o chat selecionado localmente
   emit('close');
 };
 
