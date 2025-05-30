@@ -1,13 +1,24 @@
 <template>
-  <v-dialog v-model="visible" :fullscreen="$vuetify.display.smAndDown"
+  <v-dialog 
+    v-model="visible" 
+    :fullscreen="$vuetify.display.smAndDown"
     :max-width="$vuetify.display.smAndDown ? undefined : '1200px'"
-    :height="$vuetify.display.smAndDown ? undefined : '700px'" transition="dialog-bottom-transition" persistent
-    class="chat-dialog">
+    :height="$vuetify.display.smAndDown ? undefined : '700px'" 
+    transition="dialog-bottom-transition" 
+    persistent
+    class="chat-dialog"
+  >
     <v-card class="chat-list-container">
       <!-- Sidebar de Conversas -->
-      <v-navigation-drawer v-model="drawer" :rail="!$vuetify.display.mdAndUp && !drawerExpanded"
-        :permanent="$vuetify.display.mdAndUp" :temporary="!$vuetify.display.mdAndUp" width="400" class="chat-sidebar"
-        :class="{ 'drawer-expanded': drawerExpanded }">
+      <v-navigation-drawer 
+        v-model="drawer" 
+        :rail="!$vuetify.display.mdAndUp && !drawerExpanded"
+        :permanent="$vuetify.display.mdAndUp" 
+        :temporary="!$vuetify.display.mdAndUp" 
+        width="400" 
+        class="chat-sidebar"
+        :class="{ 'drawer-expanded': drawerExpanded }"
+      >
         <!-- Header da Sidebar -->
         <v-toolbar color="primary" dark flat class="sidebar-header">
           <v-btn icon="mdi mdi-close" @click="close" class="close-button">
@@ -21,7 +32,16 @@
 
           <v-spacer></v-spacer>
 
-          <v-btn icon @click="refreshChats" :loading="refreshing">
+          <v-badge
+            :content="chatStore.totalUnreadCount"
+            :model-value="chatStore.totalUnreadCount > 0"
+            color="error"
+            overlap
+          >
+            <v-icon>mdi-bell</v-icon>
+          </v-badge>
+
+          <v-btn icon @click="refreshChats" :loading="chatStore.isLoadingMentorias">
             <v-icon>mdi-refresh</v-icon>
           </v-btn>
 
@@ -44,24 +64,51 @@
           </v-menu>
         </v-toolbar>
 
+        <!-- Status de Conexão -->
+        <v-alert
+          v-if="!chatStore.isConnected"
+          type="warning"
+          variant="tonal"
+          density="compact"
+          class="ma-2"
+        >
+          <v-icon class="mr-2">mdi-wifi-off</v-icon>
+          Reconectando...
+        </v-alert>
+
         <!-- Barra de Pesquisa -->
         <div class="search-container">
-          <v-text-field v-model="searchQuery" placeholder="Pesquisar conversas..." prepend-inner-icon="mdi-magnify"
-            variant="solo" flat hide-details single-line clearable class="search-field"></v-text-field>
+          <v-text-field 
+            v-model="searchQuery" 
+            placeholder="Pesquisar conversas..." 
+            prepend-inner-icon="mdi-magnify"
+            variant="solo" 
+            flat 
+            hide-details 
+            single-line 
+            clearable 
+            class="search-field"
+          ></v-text-field>
         </div>
 
         <!-- Filtros -->
         <div class="filters-container">
           <v-chip-group v-model="selectedFilter" mandatory class="filter-chips">
-            <v-chip value="all" size="small">Todas</v-chip>
-            <v-chip value="unread" size="small">Não lidas</v-chip>
-            <v-chip value="active" size="small">Ativas</v-chip>
+            <v-chip value="all" size="small">
+              Todas ({{ chatStore.allChats.length }})
+            </v-chip>
+            <v-chip value="unread" size="small">
+              Não lidas ({{ unreadCount }})
+            </v-chip>
+            <v-chip value="active" size="small">
+              Ativas ({{ activeCount }})
+            </v-chip>
           </v-chip-group>
         </div>
 
         <!-- Lista de Conversas -->
         <v-list class="chat-list" lines="two">
-          <template v-if="loading">
+          <template v-if="chatStore.isLoadingMentorias">
             <v-list-item v-for="n in 5" :key="n">
               <template v-slot:prepend>
                 <v-skeleton-loader type="avatar"></v-skeleton-loader>
@@ -80,14 +127,26 @@
           </template>
 
           <template v-else>
-            <v-list-item v-for="chat in filteredChats" :key="chat.id" :active="selectedChat?.id === chat.id"
-              @click="selectChat(chat)" :class="{
+            <v-list-item 
+              v-for="chat in filteredChats" 
+              :key="chat.id" 
+              :active="chatStore.selectedChat?.id === chat.id"
+              @click="selectChat(chat)" 
+              :class="{
                 'has-unread': chat.unreadCount > 0,
                 'chat-active': chat.status === 'EM_ANDAMENTO'
-              }" class="chat-item">
+              }" 
+              class="chat-item"
+            >
               <template v-slot:prepend>
-                <v-badge :content="chat.unreadCount" :model-value="chat.unreadCount > 0" color="error" overlap
-                  offset-x="8" offset-y="8">
+                <v-badge 
+                  :content="chat.unreadCount" 
+                  :model-value="chat.unreadCount > 0" 
+                  color="error" 
+                  overlap
+                  offset-x="8" 
+                  offset-y="8"
+                >
                   <v-avatar size="56" class="chat-avatar">
                     <v-img :src="chat.avatar || '/placeholder-user.jpg'" :alt="chat.title" />
                     <div v-if="chat.status === 'EM_ANDAMENTO'" class="online-indicator"></div>
@@ -104,13 +163,16 @@
 
               <v-list-item-subtitle class="chat-subtitle">
                 <div class="subtitle-line">
-                  <span class="mentor-name">{{ chat.mentorName }}</span>
-                  <span class="separator">•</span>
-                  <span class="class-type">{{ chat.tutoringClassType }}</span>
+                  <v-icon size="14" class="mr-1">{{ chat.role === 'mentor' ? 'mdi-school' : 'mdi-account' }}</v-icon>
+                  <span class="role-text">{{ chat.role === 'mentor' ? 'Você é mentor' : 'Você é mentorado' }}</span>
                 </div>
                 <div class="last-message">
-                  <v-icon v-if="chat.lastMessageSent" size="16" class="mr-1"
-                    :color="chat.lastMessageRead ? 'blue' : 'grey'">
+                  <v-icon 
+                    v-if="chat.lastMessage && isOwnMessage(chat)" 
+                    size="16" 
+                    class="mr-1"
+                    :color="chat.lastMessageRead ? 'blue' : 'grey'"
+                  >
                     {{ chat.lastMessageRead ? 'mdi-check-all' : 'mdi-check' }}
                   </v-icon>
                   {{ chat.lastMessage || 'Clique para iniciar a conversa' }}
@@ -136,7 +198,7 @@
 
       <!-- Área Principal do Chat -->
       <v-main class="chat-main">
-        <div v-if="!selectedChat" class="empty-chat-area">
+        <div v-if="!chatStore.selectedChat" class="empty-chat-area">
           <div class="empty-content">
             <v-icon size="80" color="grey-lighten-2">mdi-message-text-outline</v-icon>
             <h3 class="text-h5 mt-4 text-grey-darken-1">Selecione uma conversa</h3>
@@ -160,13 +222,27 @@
           </div>
         </div>
 
-        <MentoringChat v-else :mentoria="selectedChat" @back="handleChatBack" @messageReceived="handleMessageReceived"
-          class="mentoring-chat" />
+        <MentoringChat 
+          v-else 
+          :key="chatStore.selectedChat.id"
+          :mentoria="chatStore.selectedChat" 
+          @back="handleChatBack" 
+          @messageReceived="handleMessageReceived"
+          class="mentoring-chat" 
+        />
       </v-main>
 
       <!-- Botão flutuante para mobile -->
-      <v-btn v-if="$vuetify.display.smAndDown && selectedChat" fab fixed bottom left color="primary"
-        @click="toggleDrawer" class="mobile-drawer-toggle">
+      <v-btn 
+        v-if="$vuetify.display.smAndDown && chatStore.selectedChat" 
+        fab 
+        fixed 
+        bottom 
+        left 
+        color="primary"
+        @click="toggleDrawer" 
+        class="mobile-drawer-toggle"
+      >
         <v-icon>mdi-menu</v-icon>
       </v-btn>
     </v-card>
@@ -174,49 +250,57 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useChatStore } from '@/stores/chat';
+import { useAuthStore } from '@/stores/auth';
 import MentoringChat from './MentoringChat.vue';
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
-  },
-  mentorias: {
-    type: Array,
-    default: () => []
   }
 });
 
 const emit = defineEmits(['update:modelValue', 'close']);
 
-// Estado
+// Stores
+const chatStore = useChatStore();
+const authStore = useAuthStore();
+
+// Estado local
+const drawer = ref(true);
+const drawerExpanded = ref(false);
+const searchQuery = ref('');
+const selectedFilter = ref('all');
+const showArchivedChats = ref(false);
+
+// Computed
 const visible = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 });
 
-const drawer = ref(true);
-const drawerExpanded = ref(false);
-const searchQuery = ref('');
-const selectedFilter = ref('all');
-const selectedChat = ref(null);
-const chats = ref([]);
-const loading = ref(false);
-const refreshing = ref(false);
-const showArchivedChats = ref(false);
+// Contadores
+const unreadCount = computed(() => {
+  return chatStore.allChats.filter(chat => chat.unreadCount > 0).length;
+});
+
+const activeCount = computed(() => {
+  return chatStore.allChats.filter(chat => chat.status === 'EM_ANDAMENTO').length;
+});
 
 // Filtrar chats
 const filteredChats = computed(() => {
-  let filtered = chats.value;
+  let filtered = chatStore.allChats;
 
   // Filtro por pesquisa
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(chat =>
       chat.title.toLowerCase().includes(query) ||
-      chat.mentorName.toLowerCase().includes(query) ||
-      chat.lastMessage.toLowerCase().includes(query)
+      chat.otherUserName.toLowerCase().includes(query) ||
+      (chat.lastMessage && chat.lastMessage.toLowerCase().includes(query))
     );
   }
 
@@ -230,109 +314,38 @@ const filteredChats = computed(() => {
       break;
   }
 
-  // Ordenar por última mensagem
-  return filtered.sort((a, b) => {
-    const timeA = new Date(a.lastMessageTime || a.tutoringDate);
-    const timeB = new Date(b.lastMessageTime || b.tutoringDate);
-    return timeB - timeA;
-  });
+  // Filtro de arquivadas (se implementar)
+  if (!showArchivedChats.value) {
+    filtered = filtered.filter(chat => !chat.archived);
+  }
+
+  return filtered;
 });
 
-// Função auxiliar para garantir uma data válida
-const parseDate = (dateInput) => {
-  if (!dateInput) return null;
-
-  // Se já for um objeto Date válido
-  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
-    return dateInput;
-  }
-
-  // Tentar converter string para Date
-  let date = new Date(dateInput);
-
-  // Se falhar, tentar formatos brasileiros comuns
-  if (isNaN(date.getTime())) {
-    // Formato DD/MM/YYYY HH:mm:ss ou DD/MM/YYYY
-    const brDatePattern = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/;
-    const match = dateInput.match(brDatePattern);
-
-    if (match) {
-      const [_, day, month, year, hour = '00', minute = '00', second = '00'] = match;
-      date = new Date(year, month - 1, day, hour, minute, second);
-    }
-  }
-
-  return isNaN(date.getTime()) ? null : date;
+// Métodos
+const isOwnMessage = (chat) => {
+  // Verifica se a última mensagem foi enviada pelo usuário atual
+  const lastMsg = chatStore.messages.get(chat.id)?.[chatStore.messages.get(chat.id)?.length - 1];
+  return lastMsg && String(lastMsg.senderId) === String(authStore.userId);
 };
 
-// Converter mentorias em formato de chat
-const loadChats = () => {
-  loading.value = true;
-
-  try {
-    chats.value = props.mentorias
-      .filter(mentoria => mentoria.isChatEnable)
-      .map(mentoria => {
-        // Debug: verificar formato das datas
-        if (mentoria.tutoringDate) {
-          console.log('TutoringDate formato:', mentoria.tutoringDate, 'Tipo:', typeof mentoria.tutoringDate);
-        }
-
-        return {
-          id: mentoria.id,
-          title: mentoria.disciplineName,
-          mentorName: mentoria.mentorName,
-          tutoringClassType: mentoria.tutoringClassType,
-          avatar: mentoria.mentorAvatar,
-          lastMessage: '',
-          lastMessageTime: null,
-          lastMessageSent: false,
-          lastMessageRead: false,
-          unreadCount: Math.floor(Math.random() * 3), // Simulado
-          status: mentoria.status,
-          tutoringDate: mentoria.tutoringDate,
-          ...mentoria
-        };
-      });
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Selecionar um chat
-const selectChat = (chat) => {
-  selectedChat.value = chat;
-
-  // Marcar como lido
-  const chatIndex = chats.value.findIndex(c => c.id === chat.id);
-  if (chatIndex !== -1) {
-    chats.value[chatIndex].unreadCount = 0;
-  }
-
+const selectChat = async (chat) => {
+  await chatStore.selectChat(chat);
+  
   // Em mobile, fechar o drawer
   if (!$vuetify.display.mdAndUp) {
     drawer.value = false;
   }
 };
 
-// Formatar tempo do chat
 const formatChatTime = (date) => {
   if (!date) return '';
 
-  // Usar a função parseDate para garantir uma data válida
-  const messageDate = parseDate(date);
-
-  // Se ainda não conseguir uma data válida, retornar vazio
-  if (!messageDate) {
-    console.warn('Data inválida recebida:', date);
-    return '';
-  }
-
+  const messageDate = new Date(date);
   const now = new Date();
   const diffInMillis = now - messageDate;
   const diffInHours = diffInMillis / (1000 * 60 * 60);
 
-  // Se a data for futura (pode acontecer com datas agendadas)
   if (diffInMillis < 0) {
     return messageDate.toLocaleDateString('pt-BR', {
       day: '2-digit',
@@ -361,7 +374,6 @@ const formatChatTime = (date) => {
   }
 };
 
-// Ícones e cores de status
 const getStatusIcon = (status) => {
   switch (status) {
     case 'EM_ANDAMENTO': return 'mdi-circle';
@@ -384,32 +396,24 @@ const getStatusColor = (status) => {
 
 // Handlers
 const handleChatBack = () => {
-  selectedChat.value = null;
+  chatStore.selectedChat = null;
   if (!$vuetify.display.mdAndUp) {
     drawer.value = true;
   }
 };
 
 const handleMessageReceived = (message) => {
-  // Atualizar última mensagem do chat
-  const chatIndex = chats.value.findIndex(c => c.id === selectedChat.value?.id);
-  if (chatIndex !== -1) {
-    chats.value[chatIndex].lastMessage = message.message;
-    chats.value[chatIndex].lastMessageTime = message.timestamp;
-    chats.value[chatIndex].lastMessageSent = message.senderId === 'currentUserId'; // Ajustar conforme necessário
-  }
+  // O store já cuida de atualizar as mensagens
+  // Aqui podemos adicionar lógica adicional se necessário
 };
 
 const refreshChats = async () => {
-  refreshing.value = true;
-  await new Promise(resolve => setTimeout(resolve, 1000)); // Simular delay
-  loadChats();
-  refreshing.value = false;
+  await chatStore.loadMentorias();
 };
 
 const markAllAsRead = () => {
-  chats.value.forEach(chat => {
-    chat.unreadCount = 0;
+  chatStore.allChats.forEach(chat => {
+    chatStore.unreadMessages.set(chat.id, 0);
   });
 };
 
@@ -420,20 +424,21 @@ const toggleDrawer = () => {
 
 const close = () => {
   visible.value = false;
-  selectedChat.value = null;
   emit('close');
 };
 
 // Lifecycle
-watch(visible, (newValue) => {
-  if (newValue) {
-    loadChats();
+onMounted(() => {
+  // Se o chat não estiver inicializado, inicializar
+  if (!chatStore.isConnected && authStore.isAuthenticated) {
+    chatStore.initialize(authStore.userId);
   }
 });
 
-onMounted(() => {
-  if (visible.value) {
-    loadChats();
+// Watch para quando o diálogo abrir
+watch(visible, (newValue) => {
+  if (newValue && !chatStore.isConnected && authStore.isAuthenticated) {
+    chatStore.initialize(authStore.userId);
   }
 });
 </script>
@@ -552,16 +557,8 @@ onMounted(() => {
   margin-bottom: 2px;
 }
 
-.mentor-name {
+.role-text {
   font-weight: 500;
-}
-
-.separator {
-  margin: 0 6px;
-}
-
-.class-type {
-  text-transform: capitalize;
 }
 
 .last-message {
@@ -617,6 +614,15 @@ onMounted(() => {
   flex-direction: column;
   gap: 16px;
   margin-top: 32px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #667781;
 }
 
 .mentoring-chat {
