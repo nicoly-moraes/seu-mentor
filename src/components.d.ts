@@ -16,6 +16,7 @@ declare module 'vue' {
     AppHeader: typeof import('./components/AppHeader.vue')['default']
     AppSnackbar: typeof import('./components/AppSnackbar.vue')['default']
     CancelTutoringDialog: typeof import('./components/profile/CancelTutoringDialog.vue')['default']
+    ChatList: typeof import('./components/chat/chatList.vue')['default']
     EditMentoringSessionDialog: typeof import('./components/profile/EditMentoringSessionDialog.vue')['default']
     MentoriaCard: typeof import('./components/MentoriaCard.vue')['default']
     MentoriaConfirmationDialog: typeof import('./components/profile/MentoriaConfirmationDialog.vue')['default']
