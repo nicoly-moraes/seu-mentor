@@ -328,16 +328,74 @@ const formatMessageTime = (timestamp) => {
   });
 };
 
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+// FUNÇÃO CORRIGIDA - formatDate com validação adequada
+const formatDate = (dateInput) => {
+  // Verificar se dateInput existe e não é vazio
+  if (!dateInput) return 'Data não disponível';
+  
+  try {
+    let date;
+    
+    // Se for um timestamp numérico
+    if (typeof dateInput === 'number') {
+      date = new Date(dateInput);
+    }
+    // Se for uma string
+    else if (typeof dateInput === 'string') {
+      // Remover espaços em branco
+      const trimmedDate = dateInput.trim();
+      
+      // Se estiver vazio após trim
+      if (!trimmedDate) return 'Data não disponível';
+      
+      // Tentar criar a data
+      date = new Date(trimmedDate);
+      
+      // Se falhar e tiver 'T' no meio, já está no formato ISO
+      if (isNaN(date.getTime()) && trimmedDate.includes(' ') && !trimmedDate.includes('T')) {
+        // Converter formato "YYYY-MM-DD HH:mm:ss" para ISO
+        date = new Date(trimmedDate.replace(' ', 'T'));
+      }
+      
+      // Se ainda falhar, tentar formato brasileiro DD/MM/YYYY HH:mm
+      if (isNaN(date.getTime()) && trimmedDate.includes('/')) {
+        const [datePart, timePart] = trimmedDate.split(' ');
+        const [day, month, year] = datePart.split('/');
+        if (timePart) {
+          const [hour, minute] = timePart.split(':');
+          date = new Date(year, month - 1, day, hour || 0, minute || 0);
+        } else {
+          date = new Date(year, month - 1, day);
+        }
+      }
+    }
+    // Se for um objeto Date
+    else if (dateInput instanceof Date) {
+      date = dateInput;
+    }
+    else {
+      console.warn('Formato de data não reconhecido:', dateInput);
+      return 'Data inválida';
+    }
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      console.warn('Data inválida após tentativas de conversão:', dateInput);
+      return 'Data inválida';
+    }
+    
+    // Formatar a data se for válida
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error('Erro ao formatar data:', error, 'Valor recebido:', dateInput);
+    return 'Erro ao formatar data';
+  }
 };
 
 const initializeChat = async () => {
@@ -688,6 +746,15 @@ const toggleNotifications = () => {
 const toggleInfo = () => {
   showInfo.value = !showInfo.value;
 };
+
+// Adicionar watch para debugar o valor de tutoringDate
+watch(() => props.mentoria?.tutoringDate, (newVal) => {
+  console.log('tutoringDate mudou para:', newVal);
+  console.log('Tipo de tutoringDate:', typeof newVal);
+  if (newVal) {
+    console.log('Tentando formatar:', formatDate(newVal));
+  }
+}, { immediate: true });
 
 onMounted(() => {
   if (props.mentoria && props.mentoria.originalId) {

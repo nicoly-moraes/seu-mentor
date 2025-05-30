@@ -1,46 +1,30 @@
 <template>
-  <v-dialog
-    v-model="visible"
-    :fullscreen="$vuetify.display.smAndDown"
+  <v-dialog v-model="visible" :fullscreen="$vuetify.display.smAndDown"
     :max-width="$vuetify.display.smAndDown ? undefined : '1200px'"
-    :height="$vuetify.display.smAndDown ? undefined : '700px'"
-    transition="dialog-bottom-transition"
-    persistent
-    class="chat-dialog"
-  >
+    :height="$vuetify.display.smAndDown ? undefined : '700px'" transition="dialog-bottom-transition" persistent
+    class="chat-dialog">
     <v-card class="chat-list-container">
       <!-- Sidebar de Conversas -->
-      <v-navigation-drawer
-        v-model="drawer"
-        :rail="!$vuetify.display.mdAndUp && !drawerExpanded"
-        :permanent="$vuetify.display.mdAndUp"
-        :temporary="!$vuetify.display.mdAndUp"
-        width="400"
-        class="chat-sidebar"
-        :class="{ 'drawer-expanded': drawerExpanded }"
-      >
+      <v-navigation-drawer v-model="drawer" :rail="!$vuetify.display.mdAndUp && !drawerExpanded"
+        :permanent="$vuetify.display.mdAndUp" :temporary="!$vuetify.display.mdAndUp" width="400" class="chat-sidebar"
+        :class="{ 'drawer-expanded': drawerExpanded }">
         <!-- Header da Sidebar -->
         <v-toolbar color="primary" dark flat class="sidebar-header">
-          <v-btn 
-            icon 
-            @click="close" 
-            v-if="!$vuetify.display.mdAndUp"
-            class="close-button"
-          >
+          <v-btn icon="mdi mdi-close" @click="close" class="close-button">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-          
+
           <v-toolbar-title class="sidebar-title">
             <v-icon class="mr-2">mdi-message-text</v-icon>
             Conversas
           </v-toolbar-title>
-          
+
           <v-spacer></v-spacer>
-          
+
           <v-btn icon @click="refreshChats" :loading="refreshing">
             <v-icon>mdi-refresh</v-icon>
           </v-btn>
-          
+
           <v-menu>
             <template v-slot:activator="{ props }">
               <v-btn icon v-bind="props">
@@ -62,17 +46,8 @@
 
         <!-- Barra de Pesquisa -->
         <div class="search-container">
-          <v-text-field
-            v-model="searchQuery"
-            placeholder="Pesquisar conversas..."
-            prepend-inner-icon="mdi-magnify"
-            variant="solo"
-            flat
-            hide-details
-            single-line
-            clearable
-            class="search-field"
-          ></v-text-field>
+          <v-text-field v-model="searchQuery" placeholder="Pesquisar conversas..." prepend-inner-icon="mdi-magnify"
+            variant="solo" flat hide-details single-line clearable class="search-field"></v-text-field>
         </div>
 
         <!-- Filtros -->
@@ -105,51 +80,28 @@
           </template>
 
           <template v-else>
-            <v-list-item
-              v-for="chat in filteredChats"
-              :key="chat.id"
-              :active="selectedChat?.id === chat.id"
-              @click="selectChat(chat)"
-              :class="{ 
+            <v-list-item v-for="chat in filteredChats" :key="chat.id" :active="selectedChat?.id === chat.id"
+              @click="selectChat(chat)" :class="{
                 'has-unread': chat.unreadCount > 0,
                 'chat-active': chat.status === 'EM_ANDAMENTO'
-              }"
-              class="chat-item"
-            >
+              }" class="chat-item">
               <template v-slot:prepend>
-                <v-badge
-                  :content="chat.unreadCount"
-                  :model-value="chat.unreadCount > 0"
-                  color="error"
-                  overlap
-                  offset-x="8"
-                  offset-y="8"
-                >
+                <v-badge :content="chat.unreadCount" :model-value="chat.unreadCount > 0" color="error" overlap
+                  offset-x="8" offset-y="8">
                   <v-avatar size="56" class="chat-avatar">
-                    <v-img 
-                      :src="chat.avatar || '/placeholder-user.jpg'" 
-                      :alt="chat.title"
-                    />
-                    <div 
-                      v-if="chat.status === 'EM_ANDAMENTO'" 
-                      class="online-indicator"
-                    ></div>
+                    <v-img :src="chat.avatar || '/placeholder-user.jpg'" :alt="chat.title" />
+                    <div v-if="chat.status === 'EM_ANDAMENTO'" class="online-indicator"></div>
                   </v-avatar>
                 </v-badge>
               </template>
 
               <v-list-item-title class="chat-title">
                 {{ chat.title }}
-                <v-chip
-                  v-if="chat.status === 'EM_ANDAMENTO'"
-                  size="x-small"
-                  color="success"
-                  class="ml-2"
-                >
+                <v-chip v-if="chat.status === 'EM_ANDAMENTO'" size="x-small" color="success" class="ml-2">
                   Ao vivo
                 </v-chip>
               </v-list-item-title>
-              
+
               <v-list-item-subtitle class="chat-subtitle">
                 <div class="subtitle-line">
                   <span class="mentor-name">{{ chat.mentorName }}</span>
@@ -157,12 +109,8 @@
                   <span class="class-type">{{ chat.tutoringClassType }}</span>
                 </div>
                 <div class="last-message">
-                  <v-icon 
-                    v-if="chat.lastMessageSent" 
-                    size="16" 
-                    class="mr-1"
-                    :color="chat.lastMessageRead ? 'blue' : 'grey'"
-                  >
+                  <v-icon v-if="chat.lastMessageSent" size="16" class="mr-1"
+                    :color="chat.lastMessageRead ? 'blue' : 'grey'">
                     {{ chat.lastMessageRead ? 'mdi-check-all' : 'mdi-check' }}
                   </v-icon>
                   {{ chat.lastMessage || 'Clique para iniciar a conversa' }}
@@ -175,11 +123,7 @@
                     {{ formatChatTime(chat.lastMessageTime || chat.tutoringDate) }}
                   </div>
                   <div class="chat-status">
-                    <v-icon 
-                      size="16" 
-                      :color="getStatusColor(chat.status)"
-                      class="status-icon"
-                    >
+                    <v-icon size="16" :color="getStatusColor(chat.status)" class="status-icon">
                       {{ getStatusIcon(chat.status) }}
                     </v-icon>
                   </div>
@@ -216,26 +160,13 @@
           </div>
         </div>
 
-        <MentoringChat
-          v-else
-          :mentoria="selectedChat"
-          @back="handleChatBack"
-          @messageReceived="handleMessageReceived"
-          class="mentoring-chat"
-        />
+        <MentoringChat v-else :mentoria="selectedChat" @back="handleChatBack" @messageReceived="handleMessageReceived"
+          class="mentoring-chat" />
       </v-main>
 
       <!-- Botão flutuante para mobile -->
-      <v-btn
-        v-if="$vuetify.display.smAndDown && selectedChat"
-        fab
-        fixed
-        bottom
-        left
-        color="primary"
-        @click="toggleDrawer"
-        class="mobile-drawer-toggle"
-      >
+      <v-btn v-if="$vuetify.display.smAndDown && selectedChat" fab fixed bottom left color="primary"
+        @click="toggleDrawer" class="mobile-drawer-toggle">
         <v-icon>mdi-menu</v-icon>
       </v-btn>
     </v-card>
@@ -282,7 +213,7 @@ const filteredChats = computed(() => {
   // Filtro por pesquisa
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(chat => 
+    filtered = filtered.filter(chat =>
       chat.title.toLowerCase().includes(query) ||
       chat.mentorName.toLowerCase().includes(query) ||
       chat.lastMessage.toLowerCase().includes(query)
@@ -307,28 +238,62 @@ const filteredChats = computed(() => {
   });
 });
 
+// Função auxiliar para garantir uma data válida
+const parseDate = (dateInput) => {
+  if (!dateInput) return null;
+
+  // Se já for um objeto Date válido
+  if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+    return dateInput;
+  }
+
+  // Tentar converter string para Date
+  let date = new Date(dateInput);
+
+  // Se falhar, tentar formatos brasileiros comuns
+  if (isNaN(date.getTime())) {
+    // Formato DD/MM/YYYY HH:mm:ss ou DD/MM/YYYY
+    const brDatePattern = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/;
+    const match = dateInput.match(brDatePattern);
+
+    if (match) {
+      const [_, day, month, year, hour = '00', minute = '00', second = '00'] = match;
+      date = new Date(year, month - 1, day, hour, minute, second);
+    }
+  }
+
+  return isNaN(date.getTime()) ? null : date;
+};
+
 // Converter mentorias em formato de chat
 const loadChats = () => {
   loading.value = true;
-  
+
   try {
     chats.value = props.mentorias
       .filter(mentoria => mentoria.isChatEnable)
-      .map(mentoria => ({
-        id: mentoria.id,
-        title: mentoria.disciplineName,
-        mentorName: mentoria.mentorName,
-        tutoringClassType: mentoria.tutoringClassType,
-        avatar: mentoria.mentorAvatar,
-        lastMessage: '',
-        lastMessageTime: null,
-        lastMessageSent: false,
-        lastMessageRead: false,
-        unreadCount: Math.floor(Math.random() * 3), // Simulado
-        status: mentoria.status,
-        tutoringDate: mentoria.tutoringDate,
-        ...mentoria
-      }));
+      .map(mentoria => {
+        // Debug: verificar formato das datas
+        if (mentoria.tutoringDate) {
+          console.log('TutoringDate formato:', mentoria.tutoringDate, 'Tipo:', typeof mentoria.tutoringDate);
+        }
+
+        return {
+          id: mentoria.id,
+          title: mentoria.disciplineName,
+          mentorName: mentoria.mentorName,
+          tutoringClassType: mentoria.tutoringClassType,
+          avatar: mentoria.mentorAvatar,
+          lastMessage: '',
+          lastMessageTime: null,
+          lastMessageSent: false,
+          lastMessageRead: false,
+          unreadCount: Math.floor(Math.random() * 3), // Simulado
+          status: mentoria.status,
+          tutoringDate: mentoria.tutoringDate,
+          ...mentoria
+        };
+      });
   } finally {
     loading.value = false;
   }
@@ -337,7 +302,7 @@ const loadChats = () => {
 // Selecionar um chat
 const selectChat = (chat) => {
   selectedChat.value = chat;
-  
+
   // Marcar como lido
   const chatIndex = chats.value.findIndex(c => c.id === chat.id);
   if (chatIndex !== -1) {
@@ -353,17 +318,36 @@ const selectChat = (chat) => {
 // Formatar tempo do chat
 const formatChatTime = (date) => {
   if (!date) return '';
-  
+
+  // Usar a função parseDate para garantir uma data válida
+  const messageDate = parseDate(date);
+
+  // Se ainda não conseguir uma data válida, retornar vazio
+  if (!messageDate) {
+    console.warn('Data inválida recebida:', date);
+    return '';
+  }
+
   const now = new Date();
-  const messageDate = new Date(date);
-  const diffInHours = (now - messageDate) / (1000 * 60 * 60);
-  
+  const diffInMillis = now - messageDate;
+  const diffInHours = diffInMillis / (1000 * 60 * 60);
+
+  // Se a data for futura (pode acontecer com datas agendadas)
+  if (diffInMillis < 0) {
+    return messageDate.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
   if (diffInHours < 1) {
     return 'Agora';
   } else if (diffInHours < 24) {
-    return messageDate.toLocaleTimeString('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return messageDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   } else if (diffInHours < 48) {
     return 'Ontem';
@@ -473,7 +457,7 @@ onMounted(() => {
 }
 
 .sidebar-header {
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-title {
@@ -648,19 +632,19 @@ onMounted(() => {
   .chat-sidebar.drawer-expanded {
     width: 100% !important;
   }
-  
+
   .sidebar-header {
     padding: 8px 12px;
   }
-  
+
   .chat-item {
     padding: 16px;
   }
-  
+
   .empty-content {
     padding: 20px;
   }
-  
+
   .empty-features {
     margin-top: 24px;
   }
