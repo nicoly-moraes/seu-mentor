@@ -29,5 +29,4 @@ export const resetPassword = resetData => {
 export const logoutUser = () => {
   localStorage.removeItem('authToken');
   localStorage.removeItem('userId');
-  // Adicional: Redirecionar para a página de login ou limpar o estado da store
 };
