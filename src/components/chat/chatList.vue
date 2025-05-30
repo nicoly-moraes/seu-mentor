@@ -8,6 +8,7 @@
     persistent
     class="chat-dialog"
   >
+
     <v-card class="chat-list-container">
       <!-- Sidebar de Conversas -->
       <v-navigation-drawer
@@ -21,26 +22,22 @@
       >
         <!-- Header da Sidebar -->
         <v-toolbar color="primary" dark flat class="sidebar-header">
-          <v-btn 
-            icon 
-            @click="close" 
-            v-if="!$vuetify.display.mdAndUp"
+          <v-btn
+            icon="mdi mdi-close"
+            @click="close"
             class="close-button"
-          >
-            <v-icon>mdi-close</v-icon>
+            > <v-icon>mdi-close</v-icon>
           </v-btn>
-          
           <v-toolbar-title class="sidebar-title">
             <v-icon class="mr-2">mdi-message-text</v-icon>
             Conversas
           </v-toolbar-title>
-          
-          <v-spacer></v-spacer>
-          
+
+
           <v-btn icon @click="refreshChats" :loading="refreshing">
             <v-icon>mdi-refresh</v-icon>
           </v-btn>
-          
+
           <v-menu>
             <template v-slot:activator="{ props }">
               <v-btn icon v-bind="props">
@@ -110,7 +107,7 @@
               :key="chat.id"
               :active="selectedChat?.id === chat.id"
               @click="selectChat(chat)"
-              :class="{ 
+              :class="{
                 'has-unread': chat.unreadCount > 0,
                 'chat-active': chat.status === 'EM_ANDAMENTO'
               }"
@@ -126,12 +123,12 @@
                   offset-y="8"
                 >
                   <v-avatar size="56" class="chat-avatar">
-                    <v-img 
-                      :src="chat.avatar || '/placeholder-user.jpg'" 
+                    <v-img
+                      :src="chat.avatar || '/placeholder-user.jpg'"
                       :alt="chat.title"
                     />
-                    <div 
-                      v-if="chat.status === 'EM_ANDAMENTO'" 
+                    <div
+                      v-if="chat.status === 'EM_ANDAMENTO'"
                       class="online-indicator"
                     ></div>
                   </v-avatar>
@@ -149,7 +146,7 @@
                   Ao vivo
                 </v-chip>
               </v-list-item-title>
-              
+
               <v-list-item-subtitle class="chat-subtitle">
                 <div class="subtitle-line">
                   <span class="mentor-name">{{ chat.mentorName }}</span>
@@ -157,9 +154,9 @@
                   <span class="class-type">{{ chat.tutoringClassType }}</span>
                 </div>
                 <div class="last-message">
-                  <v-icon 
-                    v-if="chat.lastMessageSent" 
-                    size="16" 
+                  <v-icon
+                    v-if="chat.lastMessageSent"
+                    size="16"
                     class="mr-1"
                     :color="chat.lastMessageRead ? 'blue' : 'grey'"
                   >
@@ -175,8 +172,8 @@
                     {{ formatChatTime(chat.lastMessageTime || chat.tutoringDate) }}
                   </div>
                   <div class="chat-status">
-                    <v-icon 
-                      size="16" 
+                    <v-icon
+                      size="16"
                       :color="getStatusColor(chat.status)"
                       class="status-icon"
                     >
@@ -282,7 +279,7 @@ const filteredChats = computed(() => {
   // Filtro por pesquisa
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(chat => 
+    filtered = filtered.filter(chat =>
       chat.title.toLowerCase().includes(query) ||
       chat.mentorName.toLowerCase().includes(query) ||
       chat.lastMessage.toLowerCase().includes(query)
@@ -310,7 +307,7 @@ const filteredChats = computed(() => {
 // Converter mentorias em formato de chat
 const loadChats = () => {
   loading.value = true;
-  
+
   try {
     chats.value = props.mentorias
       .filter(mentoria => mentoria.isChatEnable)
@@ -337,7 +334,7 @@ const loadChats = () => {
 // Selecionar um chat
 const selectChat = (chat) => {
   selectedChat.value = chat;
-  
+
   // Marcar como lido
   const chatIndex = chats.value.findIndex(c => c.id === chat.id);
   if (chatIndex !== -1) {
@@ -353,17 +350,17 @@ const selectChat = (chat) => {
 // Formatar tempo do chat
 const formatChatTime = (date) => {
   if (!date) return '';
-  
+
   const now = new Date();
   const messageDate = new Date(date);
   const diffInHours = (now - messageDate) / (1000 * 60 * 60);
-  
+
   if (diffInHours < 1) {
     return 'Agora';
   } else if (diffInHours < 24) {
-    return messageDate.toLocaleTimeString('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return messageDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   } else if (diffInHours < 48) {
     return 'Ontem';
@@ -648,19 +645,19 @@ onMounted(() => {
   .chat-sidebar.drawer-expanded {
     width: 100% !important;
   }
-  
+
   .sidebar-header {
     padding: 8px 12px;
   }
-  
+
   .chat-item {
     padding: 16px;
   }
-  
+
   .empty-content {
     padding: 20px;
   }
-  
+
   .empty-features {
     margin-top: 24px;
   }
