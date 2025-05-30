@@ -1,16 +1,10 @@
 <template>
   <div class="mentoring-chat-container">
-    <!-- Header do Chat -->
     <div class="chat-header">
-      <v-btn 
-        icon 
-        variant="text" 
-        @click="$emit('back')"
-        class="back-button"
-      >
+      <v-btn icon variant="text" @click="$emit('back')" class="back-button">
         <v-icon>mdi-arrow-left</v-icon>
       </v-btn>
-      
+
       <div class="chat-header-info">
         <v-avatar size="40" class="mr-3">
           <v-img :src="mentoria?.mentorAvatar || '/placeholder-user.jpg'" />
@@ -28,16 +22,34 @@
           <v-icon>mdi-information-outline</v-icon>
         </v-btn>
         <v-menu>
-          <template v-slot:activator="{ props }">
-            <v-btn icon variant="text" v-bind="props">
+          <template v-slot:activator="{ props: menuProps }">
+            <v-btn icon variant="text" v-bind="menuProps">
               <v-icon>mdi-dots-vertical</v-icon>
             </v-btn>
           </template>
           <v-list>
+            <v-list-item @click="reloadChatHistory" :disabled="!isConnected || loading">
+              <template v-slot:prepend>
+                <v-icon size="small">mdi-refresh</v-icon>
+              </template>
+              <v-list-item-title>Recarregar histórico</v-list-item-title>
+            </v-list-item>
+            
+            <v-divider class="my-1"></v-divider>
+            
             <v-list-item @click="clearChat">
+              <template v-slot:prepend>
+                <v-icon size="small">mdi-delete-outline</v-icon>
+              </template>
               <v-list-item-title>Limpar conversa</v-list-item-title>
             </v-list-item>
+            
             <v-list-item @click="toggleNotifications">
+              <template v-slot:prepend>
+                <v-icon size="small">
+                  {{ notifications ? 'mdi-bell-off-outline' : 'mdi-bell-outline' }}
+                </v-icon>
+              </template>
               <v-list-item-title>
                 {{ notifications ? 'Silenciar' : 'Ativar' }} notificações
               </v-list-item-title>
@@ -47,19 +59,12 @@
       </div>
     </div>
 
-    <!-- Área de Mensagens -->
-    <div 
-      ref="messagesContainer" 
-      class="messages-area"
-      @scroll="handleScroll"
-    >
-      <!-- Loading inicial -->
+    <div ref="messagesContainer" class="messages-area" @scroll="handleScroll">
       <div v-if="loading" class="loading-container">
         <v-progress-circular indeterminate color="primary" size="32"></v-progress-circular>
         <span class="ml-3">Carregando mensagens...</span>
       </div>
 
-      <!-- Estado vazio -->
       <div v-else-if="messages.length === 0" class="empty-state">
         <v-icon size="64" color="grey-lighten-2">mdi-message-text-outline</v-icon>
         <h3 class="text-h6 mt-4 text-grey">Nenhuma mensagem ainda</h3>
@@ -68,48 +73,31 @@
         </p>
       </div>
 
-      <!-- Lista de Mensagens -->
       <div v-else class="messages-list">
         <template v-for="(group, groupIndex) in groupedMessages" :key="groupIndex">
-          <!-- Separador de data -->
           <div class="date-separator">
             <v-chip size="small" variant="tonal" color="grey">
               {{ formatDateSeparator(group.date) }}
             </v-chip>
           </div>
 
-          <!-- Mensagens do dia -->
-          <div
-            v-for="message in group.messages"
-            :key="message.id"
-            class="message-container"
-            :class="{ 'own-message': isOwnMessage(message) }"
-          >
+          <div v-for="message in group.messages" :key="message.id" class="message-container"
+            :class="{ 'own-message': isOwnMessage(message) }">
             <div class="message-bubble" :class="getMessageBubbleClass(message)">
-              <!-- Nome do remetente (apenas para mensagens de outros) -->
-              <div 
-                v-if="!isOwnMessage(message)" 
-                class="sender-name"
-              >
+              <div v-if="!isOwnMessage(message)" class="sender-name">
                 {{ message.senderName }}
               </div>
 
-              <!-- Conteúdo da mensagem -->
               <div class="message-content">
                 {{ message.message }}
               </div>
 
-              <!-- Informações da mensagem (hora e status) -->
               <div class="message-info">
                 <span class="message-time">
                   {{ formatMessageTime(message.timestamp) }}
                 </span>
                 <div v-if="isOwnMessage(message)" class="message-status">
-                  <v-icon 
-                    :size="16" 
-                    :color="getStatusIconColor(message.status)"
-                    class="status-icon"
-                  >
+                  <v-icon :size="16" :color="getStatusIconColor(message.status)" class="status-icon">
                     {{ getStatusIcon(message.status) }}
                   </v-icon>
                 </div>
@@ -118,7 +106,6 @@
           </div>
         </template>
 
-        <!-- Indicador de digitação -->
         <div v-if="someoneTyping" class="typing-indicator">
           <div class="typing-bubble">
             <div class="typing-dots">
@@ -131,96 +118,39 @@
         </div>
       </div>
 
-      <!-- Botão para rolar para baixo -->
-      <v-fab
-        v-if="showScrollButton"
-        class="scroll-to-bottom-btn"
-        size="small"
-        color="primary"
-        @click="scrollToBottom"
-      >
-        <v-icon>mdi-chevron-down</v-icon>
-        <v-badge
-          v-if="unreadCount > 0"
-          :content="unreadCount"
-          color="error"
-          overlap
-        ></v-badge>
-      </v-fab>
+      <v-fab-transition>
+        <v-btn v-if="showScrollButton" class="scroll-to-bottom-btn" size="small" icon color="primary"
+          @click="scrollToBottom()" elevation="4">
+          <v-badge v-if="unreadCount > 0" :content="unreadCount > 9 ? '9+' : unreadCount" color="error" floating
+            overlap>
+            <v-icon>mdi-chevron-down</v-icon>
+          </v-badge>
+          <v-icon v-else>mdi-chevron-down</v-icon>
+        </v-btn>
+      </v-fab-transition>
     </div>
 
-    <!-- Área de Input -->
     <div class="input-area">
       <div class="input-container">
-        <!-- Botão de emoji -->
-        <v-btn
-          icon
-          variant="text"
-          size="small"
-          @click="toggleEmojiPicker"
-          class="emoji-button"
-        >
-          <v-icon>mdi-emoticon-outline</v-icon>
-        </v-btn>
-
-        <!-- Campo de texto -->
-        <v-text-field
-          v-model="newMessage"
-          :placeholder="getInputPlaceholder()"
-          variant="outlined"
-          density="compact"
-          hide-details
-          single-line
-          :disabled="!isConnected || sending"
-          @keydown.enter.prevent="sendMessage"
-          @input="handleTyping"
-          @focus="markAsRead"
-          class="message-input"
-          rows="1"
-          auto-grow
-          max-rows="4"
-        >
+        <v-textarea v-model="newMessage" :placeholder="getInputPlaceholder()" variant="solo" density="compact"
+          hide-details single-line :disabled="!isConnected || sending" @keydown.enter.prevent="sendMessage"
+          @input="handleTyping" @focus="markAsRead" class="message-input" rows="1" auto-grow max-rows="4" flat>
           <template v-slot:append-inner>
-            <v-btn
-              icon
-              variant="text"
-              size="small"
-              @click="attachFile"
-              class="attach-button"
-            >
+            <v-btn icon variant="text" size="small" @click="attachFile" class="attach-button">
               <v-icon>mdi-paperclip</v-icon>
             </v-btn>
           </template>
-        </v-text-field>
-
-        <!-- Botão de enviar -->
-        <v-btn
-          icon
-          color="primary"
-          :loading="sending"
-          :disabled="!canSendMessage"
-          @click="sendMessage"
-          class="send-button"
-        >
-          <v-icon>{{ newMessage.trim() ? 'mdi-send' : 'mdi-microphone' }}</v-icon>
-        </v-btn>
+        </v-textarea>
       </div>
     </div>
 
-    <!-- Snackbar de conexão -->
-    <v-snackbar
-      v-model="connectionSnackbar"
-      :color="isConnected ? 'success' : 'error'"
-      :timeout="3000"
-      location="top"
-    >
+    <v-snackbar v-model="connectionSnackbar" :color="isConnected ? 'success' : 'error'" :timeout="3000" location="top">
       <v-icon class="mr-2">
         {{ isConnected ? 'mdi-wifi' : 'mdi-wifi-off' }}
       </v-icon>
       {{ isConnected ? 'Conectado' : 'Desconectado. Tentando reconectar...' }}
     </v-snackbar>
 
-    <!-- Dialog de informações da mentoria -->
     <v-dialog v-model="showInfo" max-width="500">
       <v-card>
         <v-card-title>Informações da Mentoria</v-card-title>
@@ -243,7 +173,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn @click="showInfo = false">Fechar</v-btn>
+          <v-btn color="primary" text @click="showInfo = false">Fechar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -254,6 +184,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import MentorChatClient from '@/services/chatClient';
 import { useAuthStore } from '@/stores/auth';
+import { getChatHistoryByTutoringId } from '@/services/chatHistoryService';
 
 const props = defineProps({
   mentoria: {
@@ -283,6 +214,14 @@ const typingTimeout = ref(null);
 const showEmojiPicker = ref(false);
 const notifications = ref(true);
 const showInfo = ref(false);
+const isRecordingAudio = ref(false);
+
+// Adicionar Map para rastrear mensagens temporárias
+const tempMessageMap = ref(new Map());
+
+// Constantes
+const MESSAGE_TIMEOUT = 30000; // 30 segundos
+let pendingCheckInterval = null;
 
 // Computed
 const currentUserId = computed(() => authStore.getCurrentUserId);
@@ -302,10 +241,8 @@ const groupedMessages = computed(() => {
       };
       groups.push(currentGroup);
     }
-
     currentGroup.messages.push(message);
   });
-
   return groups;
 });
 
@@ -330,6 +267,7 @@ const getStatusIcon = (status) => {
     case 'sent': return 'mdi-check';
     case 'delivered': return 'mdi-check-all';
     case 'read': return 'mdi-check-all';
+    case 'failed': return 'mdi-alert-circle-outline';
     default: return 'mdi-clock-outline';
   }
 };
@@ -339,26 +277,26 @@ const getStatusIconColor = (status) => {
     case 'read': return 'blue';
     case 'delivered': return 'grey';
     case 'sent': return 'grey';
+    case 'failed': return 'error';
     default: return 'grey-lighten-1';
   }
 };
 
 const getStatusText = () => {
   if (!props.mentoria) return '';
-  
   switch (props.mentoria.status) {
     case 'EM_ANDAMENTO': return 'Online';
     case 'AGENDADA': return 'Agendada';
     case 'FINALIZADA': return 'Finalizada';
     case 'CANCELADA': return 'Cancelada';
-    default: return 'Offline';
+    default: return props.mentoria.status || 'Offline';
   }
 };
 
 const getInputPlaceholder = () => {
-  if (!isConnected.value) return 'Conectando...';
-  if (props.mentoria?.status === 'FINALIZADA') return 'Mentoria finalizada';
-  if (props.mentoria?.status === 'CANCELADA') return 'Mentoria cancelada';
+  if (!isConnected.value) return 'Conectando ao chat...';
+  if (props.mentoria?.status === 'FINALIZADA') return 'Esta mentoria foi finalizada.';
+  if (props.mentoria?.status === 'CANCELADA') return 'Esta mentoria foi cancelada.';
   return 'Digite uma mensagem...';
 };
 
@@ -382,10 +320,11 @@ const formatDateSeparator = (dateString) => {
 };
 
 const formatMessageTime = (timestamp) => {
+  if (!timestamp) return '';
   const date = new Date(timestamp);
-  return date.toLocaleTimeString('pt-BR', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return date.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
   });
 };
 
@@ -402,18 +341,22 @@ const formatDate = (dateString) => {
 };
 
 const initializeChat = async () => {
+  loading.value = true;
+  isConnected.value = false;
   try {
-    loading.value = true;
-    
     chatClient.value = new MentorChatClient({
-      debug: false
+      debug: import.meta.env.DEV
     });
 
-    // Configurar handlers
     chatClient.value.onConnect(() => {
       isConnected.value = true;
       connectionSnackbar.value = true;
-      subscribeToMentoria();
+      if (props.mentoria?.originalId) {
+        subscribeToMentoria();
+      } else {
+        console.error("Mentoria originalId não disponível no momento da conexão.");
+        loading.value = false;
+      }
     });
 
     chatClient.value.onDisconnect(() => {
@@ -422,106 +365,272 @@ const initializeChat = async () => {
     });
 
     chatClient.value.onError((error) => {
-      console.error('Erro no chat:', error);
+      console.error('Erro WebSocket:', error);
       isConnected.value = false;
+      connectionSnackbar.value = true;
+      loading.value = false;
     });
 
-    // Handler de mensagens
+    // Handler modificado para evitar duplicatas
     chatClient.value.onMessage('general', (message) => {
-      addMessage(message);
+      if (message.tutoringId === props.mentoria.originalId) {
+        // Verificar se é uma mensagem própria retornada do servidor
+        if (String(message.senderId) === String(currentUserId.value)) {
+          // Procurar pela mensagem temporária correspondente
+          const tempId = tempMessageMap.value.get(message.message);
+          
+          if (tempId) {
+            // Encontrou a mensagem temporária - substituir
+            const tempIndex = messages.value.findIndex(m => m.id === tempId);
+            if (tempIndex !== -1) {
+              // Atualizar a mensagem temporária com os dados do servidor
+              messages.value[tempIndex] = {
+                ...message,
+                status: 'sent',
+                isTemp: false
+              };
+              // Remover do mapa
+              tempMessageMap.value.delete(message.message);
+            }
+          } else {
+            // Mensagem própria não encontrada no mapa (pode ser de outra sessão)
+            // Verificar se já não existe antes de adicionar
+            const exists = messages.value.some(m => 
+              m.id === message.id || 
+              (m.message === message.message && 
+               String(m.senderId) === String(message.senderId) &&
+               Math.abs(new Date(m.timestamp) - new Date(message.timestamp)) < 5000)
+            );
+            
+            if (!exists) {
+              addMessage(message);
+            }
+          }
+        } else {
+          // Mensagem de outro usuário - adicionar normalmente
+          addMessage(message);
+        }
+      }
       emit('messageReceived', message);
     });
 
-    // Conectar
     await chatClient.value.initialize();
-    
+
   } catch (error) {
-    console.error('Erro ao inicializar chat:', error);
-  } finally {
+    console.error('Falha ao inicializar o chat client:', error);
     loading.value = false;
+    isConnected.value = false;
+    connectionSnackbar.value = true;
   }
 };
 
 const subscribeToMentoria = () => {
-  if (!props.mentoria || !chatClient.value) return;
+  if (!props.mentoria || !chatClient.value || !isConnected.value) {
+    console.warn("Não é possível subscrever: Mentoria, chatClient ou conexão ausente.");
+    if (!isConnected.value) loading.value = false;
+    return;
+  }
 
-  chatClient.value.setCurrentTutoring(props.mentoria.id);
-  chatClient.value.subscribeTutoring(props.mentoria.id, {
-    subscribeGeneral: true
-  });
+  const tutoringIdToUse = props.mentoria.originalId;
 
-  // Carregar mensagens anteriores
-  loadPreviousMessages();
+  if (typeof tutoringIdToUse === 'number') {
+    chatClient.value.setCurrentTutoring(tutoringIdToUse);
+    chatClient.value.subscribeTutoring(tutoringIdToUse, {
+      subscribeGeneral: true
+    });
+    loadPreviousMessages(tutoringIdToUse);
+  } else {
+    console.error('Erro Crítico: props.mentoria.originalId não é um número válido para subscrição.', props.mentoria);
+    loading.value = false;
+    isConnected.value = false;
+  }
 };
 
-const loadPreviousMessages = () => {
-  // Aqui você faria uma chamada à API para buscar mensagens anteriores
-  // Por enquanto, vamos apenas limpar as mensagens
-  messages.value = [];
+// Implementação do loadPreviousMessages com histórico
+const loadPreviousMessages = async (tutoringId) => {
+  try {
+    // Limpar mensagens anteriores
+    messages.value = [];
+    loading.value = true;
+    
+    // Buscar histórico do chat
+    const response = await getChatHistoryByTutoringId(tutoringId);
+    
+    if (response && response.data) {
+      // Processar mensagens do histórico
+      const historicalMessages = response.data.map(msg => ({
+        id: msg.id || `hist_${msg.timestamp}_${Math.random().toString(36).substr(2, 9)}`,
+        message: msg.message || msg.content,
+        senderId: msg.senderId,
+        senderName: msg.senderName || (String(msg.senderId) === String(currentUserId.value) ? 'Você' : msg.senderName),
+        timestamp: msg.timestamp || msg.createdAt,
+        tutoringId: msg.tutoringId || tutoringId,
+        status: String(msg.senderId) === String(currentUserId.value) ? 'read' : 'received',
+        isTemp: false
+      }));
+      
+      // Ordenar mensagens por timestamp
+      historicalMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      
+      // Adicionar mensagens ao array
+      messages.value = historicalMessages;
+      
+      console.log(`Carregadas ${historicalMessages.length} mensagens do histórico`);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar histórico de mensagens:', error);
+    // Você pode adicionar uma notificação de erro aqui se desejar
+  } finally {
+    loading.value = false;
+    // Scroll para o final após carregar as mensagens
+    nextTick(() => scrollToBottom('auto'));
+  }
 };
 
+// Método para recarregar o histórico quando necessário
+const reloadChatHistory = async () => {
+  if (props.mentoria?.originalId && isConnected.value) {
+    await loadPreviousMessages(props.mentoria.originalId);
+  }
+};
+
+// Método addMessage modificado para evitar duplicatas com mensagens do histórico
 const addMessage = (message) => {
   const formattedMessage = {
     ...message,
-    id: message.id || Date.now() + Math.random(),
-    timestamp: message.timestamp || new Date(),
-    status: message.senderId === currentUserId.value ? 'sent' : 'received'
+    id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    timestamp: message.timestamp || new Date().toISOString(),
+    status: String(message.senderId) === String(currentUserId.value) ? (message.status || 'sent') : 'received',
+    isTemp: false
   };
 
-  messages.value.push(formattedMessage);
-  
-  // Atualizar contador de não lidas se não for nossa mensagem
-  if (!isOwnMessage(formattedMessage)) {
-    unreadCount.value++;
-  }
-
-  // Scroll automático se estiver próximo do final
-  nextTick(() => {
-    if (shouldAutoScroll()) {
-      scrollToBottom();
-      markAsRead();
+  // Verificar duplicatas de forma mais robusta
+  const isDuplicate = messages.value.some(m => {
+    // Verificar por ID
+    if (m.id === formattedMessage.id && !m.isTemp) return true;
+    
+    // Verificar por conteúdo similar (para evitar duplicatas de race condition)
+    if (m.message === formattedMessage.message && 
+        String(m.senderId) === String(formattedMessage.senderId) &&
+        !m.isTemp) {
+      const timeDiff = Math.abs(new Date(m.timestamp) - new Date(formattedMessage.timestamp));
+      return timeDiff < 5000; // 5 segundos de tolerância
     }
+    
+    return false;
   });
+
+  if (!isDuplicate) {
+    // Verificar se é uma mensagem mais antiga que todas as existentes
+    const oldestMessage = messages.value.length > 0 
+      ? messages.value.reduce((oldest, current) => 
+          new Date(current.timestamp) < new Date(oldest.timestamp) ? current : oldest
+        )
+      : null;
+    
+    if (oldestMessage && new Date(formattedMessage.timestamp) < new Date(oldestMessage.timestamp)) {
+      // Inserir no início se for mais antiga
+      messages.value.unshift(formattedMessage);
+    } else {
+      // Adicionar no final
+      messages.value.push(formattedMessage);
+    }
+    
+    // Notificações e scroll
+    if (String(message.senderId) !== String(currentUserId.value)) {
+      if (messagesContainer.value && 
+          (messagesContainer.value.scrollHeight - messagesContainer.value.scrollTop - messagesContainer.value.clientHeight > 50)) {
+        unreadCount.value++;
+      } else {
+        markAsRead();
+      }
+    }
+
+    nextTick(() => {
+      if (shouldAutoScroll() || String(message.senderId) === String(currentUserId.value)) {
+        scrollToBottom();
+      }
+    });
+  }
 };
 
+// Método sendMessage modificado
 const sendMessage = async () => {
   if (!canSendMessage.value) return;
 
   sending.value = true;
   const messageText = newMessage.value.trim();
+  const tempId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const timestamp = new Date().toISOString();
+
+  // Criar mensagem temporária
+  const tempMessage = {
+    id: tempId,
+    message: messageText,
+    senderId: currentUserId.value,
+    senderName: authStore.user?.name || 'Você',
+    timestamp: timestamp,
+    status: 'sending',
+    isTemp: true // Marcador importante
+  };
+
+  // Adicionar ao mapa de mensagens temporárias
+  tempMessageMap.value.set(messageText, tempId);
+
+  // Adicionar mensagem localmente
+  messages.value.push(tempMessage);
   newMessage.value = '';
 
+  // Scroll para baixo
+  nextTick(() => scrollToBottom());
+
   try {
-    const success = chatClient.value.sendGeneralMessage(messageText);
-    
-    if (success) {
-      // Adicionar mensagem localmente para feedback imediato
-      addMessage({
-        id: Date.now(),
-        message: messageText,
-        senderId: currentUserId.value,
-        senderName: 'Você',
-        timestamp: new Date(),
-        status: 'sending'
-      });
+    const success = chatClient.value.sendGeneralMessage(messageText, props.mentoria.originalId);
+    if (!success) {
+      throw new Error("Falha ao enviar mensagem via STOMP.");
     }
   } catch (error) {
     console.error('Erro ao enviar mensagem:', error);
-    newMessage.value = messageText; // Restaurar mensagem
+    // Atualizar status para falha
+    const msgIndex = messages.value.findIndex(m => m.id === tempId);
+    if (msgIndex !== -1) {
+      messages.value[msgIndex].status = 'failed';
+    }
+    // Remover do mapa
+    tempMessageMap.value.delete(messageText);
   } finally {
     sending.value = false;
   }
 };
 
+// Verificar mensagens pendentes
+const checkPendingMessages = () => {
+  const now = Date.now();
+  messages.value.forEach((msg, index) => {
+    if (msg.status === 'sending' && msg.isTemp) {
+      const msgTime = new Date(msg.timestamp).getTime();
+      if (now - msgTime > MESSAGE_TIMEOUT) {
+        messages.value[index].status = 'failed';
+        // Remover do mapa se ainda estiver lá
+        tempMessageMap.value.delete(msg.message);
+      }
+    }
+  });
+};
+
 const handleScroll = () => {
   if (!messagesContainer.value) return;
-  
   const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value;
   const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-  
-  showScrollButton.value = distanceFromBottom > 100;
-  
-  // Marcar como lida se estiver no final
+
+  showScrollButton.value = distanceFromBottom > 200;
+
+  // Detectar scroll no topo para carregar mais mensagens (se implementar paginação)
+  if (scrollTop === 0 && !loading.value && messages.value.length > 0) {
+    // Descomentar quando implementar paginação
+    // loadMoreMessages();
+  }
+
   if (distanceFromBottom < 50) {
     markAsRead();
   }
@@ -529,34 +638,32 @@ const handleScroll = () => {
 
 const shouldAutoScroll = () => {
   if (!messagesContainer.value) return true;
-  
   const { scrollTop, scrollHeight, clientHeight } = messagesContainer.value;
-  const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-  
-  return distanceFromBottom < 100;
+  return scrollHeight <= clientHeight || (scrollHeight - scrollTop - clientHeight) < 100;
 };
 
-const scrollToBottom = () => {
+const scrollToBottom = (behavior = 'smooth') => {
   if (!messagesContainer.value) return;
-  
   nextTick(() => {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    messagesContainer.value.scrollTo({
+      top: messagesContainer.value.scrollHeight,
+      behavior: behavior
+    });
   });
 };
 
 const markAsRead = () => {
-  unreadCount.value = 0;
+  if (unreadCount.value > 0) {
+    unreadCount.value = 0;
+  }
 };
 
 const handleTyping = () => {
-  // Implementar indicador de digitação
-  if (typingTimeout.value) {
-    clearTimeout(typingTimeout.value);
-  }
-  
+  if (!isConnected.value) return;
+  if (typingTimeout.value) clearTimeout(typingTimeout.value);
   typingTimeout.value = setTimeout(() => {
-    // Parar indicador de digitação
-  }, 1000);
+    // chatClient.value.sendTypingEvent(props.mentoria.originalId, false);
+  }, 1500);
 };
 
 const toggleEmojiPicker = () => {
@@ -564,13 +671,13 @@ const toggleEmojiPicker = () => {
 };
 
 const attachFile = () => {
-  // Implementar anexo de arquivos
-  alert('Funcionalidade de anexar arquivos em desenvolvimento');
+  alert('Funcionalidade de anexar arquivos ainda não implementada.');
 };
 
 const clearChat = () => {
-  if (confirm('Tem certeza que deseja limpar todas as mensagens?')) {
+  if (confirm('Tem certeza que deseja limpar todas as mensagens desta conversa (apenas localmente)?')) {
     messages.value = [];
+    tempMessageMap.value.clear();
   }
 };
 
@@ -582,23 +689,55 @@ const toggleInfo = () => {
   showInfo.value = !showInfo.value;
 };
 
-// Lifecycle
 onMounted(() => {
-  initializeChat();
+  if (props.mentoria && props.mentoria.originalId) {
+    initializeChat();
+  } else {
+    console.error("Mentoria ou originalId não disponível no onMounted.");
+    loading.value = false;
+  }
+  
+  // Iniciar verificação de mensagens pendentes
+  pendingCheckInterval = setInterval(checkPendingMessages, 5000);
 });
 
 onUnmounted(() => {
   if (chatClient.value) {
     chatClient.value.disconnect();
   }
+  if (typingTimeout.value) {
+    clearTimeout(typingTimeout.value);
+  }
+  if (pendingCheckInterval) {
+    clearInterval(pendingCheckInterval);
+  }
+  tempMessageMap.value.clear();
 });
 
-// Watchers
-watch(() => props.mentoria, (newMentoria) => {
-  if (newMentoria && chatClient.value && isConnected.value) {
-    subscribeToMentoria();
+watch(() => props.mentoria.originalId, (newId, oldId) => {
+  if (newId !== oldId && newId) {
+    console.log(`ID da Mentoria mudou de ${oldId} para ${newId}. Re-inicializando chat.`);
+    messages.value = [];
+    tempMessageMap.value.clear();
+    unreadCount.value = 0;
+    loading.value = true;
+    isConnected.value = false;
+    if (chatClient.value && chatClient.value.isConnected()) {
+      chatClient.value.disconnect();
+    }
+    initializeChat();
+  } else if (!newId && oldId) {
+    console.warn("Mentoria originalId tornou-se nulo. Desconectando chat se ativo.");
+    if (chatClient.value && chatClient.value.isConnected()) {
+      chatClient.value.disconnect();
+    }
+    messages.value = [];
+    tempMessageMap.value.clear();
+    loading.value = false;
+    isConnected.value = false;
   }
-});
+}, { immediate: false });
+
 </script>
 
 <style scoped>
@@ -607,15 +746,18 @@ watch(() => props.mentoria, (newMentoria) => {
   flex-direction: column;
   height: 100%;
   background-color: #f0f2f5;
+  overflow: hidden;
 }
 
 .chat-header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  background-color: #075e54;
+  padding: 10px 16px;
+  background-color: #004aad;
   color: white;
-  min-height: 64px;
+  min-height: 56px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .back-button {
@@ -626,28 +768,41 @@ watch(() => props.mentoria, (newMentoria) => {
 .chat-header-info {
   display: flex;
   align-items: center;
-  flex: 1;
+  flex-grow: 1;
+  min-width: 0;
 }
 
 .header-text {
-  flex: 1;
+  flex-grow: 1;
+  overflow: hidden;
+  margin-left: 8px;
 }
 
 .chat-title {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-subtitle {
-  font-size: 13px;
-  opacity: 0.8;
+  font-size: 0.75rem;
+  opacity: 0.85;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .chat-actions {
   display: flex;
-  gap: 4px;
+  align-items: center;
+}
+
+.chat-actions .v-btn {
+  color: white !important;
 }
 
 .chat-actions .v-btn {
@@ -655,46 +810,77 @@ watch(() => props.mentoria, (newMentoria) => {
 }
 
 .messages-area {
-  flex: 1;
+  flex-grow: 1;
+  /* Ocupar todo o espaço vertical restante */
   overflow-y: auto;
-  padding: 16px;
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5ddd5' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  padding: 16px 12px;
+  /* Padding horizontal menor */
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAYAAAAGCAYAAADgzO9IAAAAFUlEQVQImWNgoAgg+vmP8WyMGUwPMAAALuwFR1QOimAAAAAASUVORK5CYII=");
+  /* Padrão de pontinhos sutis */
+  background-repeat: repeat;
   position: relative;
 }
 
-.loading-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: #667781;
-}
-
+.loading-container,
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px;
-  text-align: center;
+  color: #54656f;
+  /* Cor do texto do WhatsApp para placeholders */
   height: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
+
+.loading-container span {
+  margin-top: 12px;
+}
+
+.empty-state .v-icon {
+  opacity: 0.3;
+}
+
+.empty-state h3 {
+  color: #111b21;
+  /* Cor do título escuro do WhatsApp */
+  margin-top: 16px;
+}
+
+.empty-state p {
+  color: #54656f;
+}
+
 
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  /* Pequeno espaço entre as bolhas */
 }
 
 .date-separator {
   display: flex;
   justify-content: center;
-  margin: 16px 0 8px 0;
+  margin: 16px 0;
+}
+
+.date-separator .v-chip {
+  background-color: #e9edef;
+  /* Cor de chip de data do WhatsApp */
+  color: #54656f;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  height: auto;
+  box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.1);
 }
 
 .message-container {
   display: flex;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
+  /* Quase sem margem, o espaçamento vem do gap da lista */
 }
 
 .message-container.own-message {
@@ -702,36 +888,48 @@ watch(() => props.mentoria, (newMentoria) => {
 }
 
 .message-bubble {
-  max-width: 70%;
-  padding: 8px 12px;
-  border-radius: 8px;
+  max-width: calc(100% - 60px);
+  /* Limita a largura máxima */
+  width: fit-content;
+  /* Ajusta à largura do conteúdo */
+  padding: 7px 10px;
+  border-radius: 7.5px;
+  /* Raio de borda do WhatsApp */
   position: relative;
   word-wrap: break-word;
-  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  line-height: 1.35;
+  font-size: 0.9rem;
 }
 
 .own-bubble {
-  background-color: #d9fdd3;
+  background-color: #dcf8c6;
+  /* Verde do WhatsApp */
   border-bottom-right-radius: 2px;
 }
 
 .other-bubble {
-  background-color: white;
+  background-color: #ffffff;
+  /* Branco */
   border-bottom-left-radius: 2px;
 }
 
 .sender-name {
-  font-size: 12px;
-  color: #06cf9c;
+  /* Para chats em grupo, não usado aqui mas bom ter */
+  font-size: 0.8rem;
+  color: #056162;
+  /* Cor de nome em grupo do WhatsApp */
   font-weight: 500;
   margin-bottom: 2px;
+  padding-left: 2px;
 }
 
 .message-content {
-  font-size: 14px;
-  line-height: 1.4;
-  color: #303030;
-  margin-bottom: 4px;
+  color: #111b21;
+  /* Cor do texto principal */
+  margin-bottom: 3px;
+  white-space: pre-wrap;
+  /* Preserva quebras de linha e espaços */
 }
 
 .message-info {
@@ -739,124 +937,251 @@ watch(() => props.mentoria, (newMentoria) => {
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  margin-top: 2px;
+  margin-top: 0px;
+  /* Reduzido */
+  height: 16px;
+  float: right;
+  /* Alinha à direita dentro da bolha */
+  clear: both;
+  /* Limpa float se o conteúdo for curto */
+  line-height: 1;
+  /* Para não adicionar altura extra */
 }
 
 .message-time {
-  font-size: 11px;
+  font-size: 0.7rem;
+  /* Hora menor */
   color: #667781;
-}
-
-.message-status {
-  display: flex;
-  align-items: center;
+  margin-right: 2px;
+  /* Pequeno espaço antes do ícone de status */
 }
 
 .status-icon {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .typing-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  margin: 8px 0;
+  /* Margem vertical */
+  padding: 0 8px;
 }
 
 .typing-bubble {
-  background-color: white;
-  padding: 8px 12px;
-  border-radius: 8px;
+  /* Estilo similar à bolha de mensagem */
+  background-color: #ffffff;
+  padding: 7px 10px;
+  border-radius: 7.5px;
   border-bottom-left-radius: 2px;
-  box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-}
-
-.typing-dots {
-  display: flex;
-  gap: 2px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
 }
 
 .typing-dots span {
-  width: 6px;
-  height: 6px;
-  background-color: #667781;
+  width: 5px;
+  /* Pontos menores */
+  height: 5px;
+  background-color: #8696a0;
+  /* Cor dos pontos do WhatsApp */
   border-radius: 50%;
-  animation: typing 1.4s infinite ease-in-out;
+  animation: typing 1.2s infinite ease-in-out both;
+  /* Animação mais sutil */
 }
 
-.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
-.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+.typing-dots span:nth-child(1) {
+  animation-delay: -0.24s;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: -0.12s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0s;
+}
 
 @keyframes typing {
-  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+
+  0%,
+  80%,
+  100% {
+    transform: translateY(0px) scale(0.7);
+    opacity: 0.5;
+  }
+
+  40% {
+    transform: translateY(-2px) scale(1);
+    opacity: 1;
+  }
 }
 
 .typing-text {
-  font-size: 12px;
-  color: #667781;
+  font-size: 0.8rem;
+  color: #54656f;
   font-style: italic;
 }
 
 .scroll-to-bottom-btn {
   position: absolute;
-  bottom: 20px;
-  right: 20px;
+  bottom: 16px;
+  right: 16px;
   z-index: 10;
 }
 
+.scroll-to-bottom-btn .v-badge :deep(.v-badge__badge) {
+  font-size: 0.65rem;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  line-height: 14px;
+  /* Para centralizar o número */
+}
+
 .input-area {
-  padding: 8px 16px 16px 16px;
+  padding: 6px 10px;
+  /* Padding menor */
   background-color: #f0f2f5;
+  border-top: 1px solid #dde0e1;
+  flex-shrink: 0;
+  /* Não encolher */
 }
 
 .input-container {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  background-color: white;
-  border-radius: 24px;
-  padding: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  gap: 6px;
+  /* Espaço menor */
+  background-color: #ffffff;
+  /* Fundo branco para o input */
+  border-radius: 21px;
+  /* Borda do input do WhatsApp */
+  padding: 5px 8px;
+  /* Padding interno */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .emoji-button,
 .attach-button {
-  color: #667781 !important;
+  color: #54656f !important;
+  /* Cor dos ícones do WhatsApp */
+  align-self: center;
+  /* Centralizar verticalmente */
+}
+
+.emoji-button:hover,
+.attach-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .message-input {
-  flex: 1;
+  flex-grow: 1;
+  align-self: center;
+  padding: 0;
+  /* Remover padding extra do v-textarea wrapper */
+}
+
+/* Ajustes específicos para v-textarea para parecer com input de chat */
+.message-input :deep(.v-input__control) {
+  min-height: auto !important;
+  /* Sobrescrever min-height */
 }
 
 .message-input :deep(.v-field) {
-  border-radius: 20px;
-  box-shadow: none;
+  padding: 6px 0px;
+  /* Padding interno do campo */
+  box-shadow: none !important;
+  background-color: transparent !important;
+  min-height: auto;
+  line-height: 1.4;
+  /* Melhorar espaçamento de linha no auto-grow */
+}
+
+.message-input :deep(textarea) {
+  padding: 0 !important;
+  /* Remover padding do textarea em si */
+  margin: 0;
+  max-height: 100px;
+  /* Limitar altura máxima do auto-grow */
+  overflow-y: auto !important;
+  /* Garantir scroll no textarea se exceder max-rows */
 }
 
 .message-input :deep(.v-field__outline) {
   display: none;
 }
 
+.message-input :deep(.v-field__append-inner) {
+  padding-top: 0;
+  /* Ajustar alinhamento do ícone de anexo */
+  align-self: center;
+}
+
+
 .send-button {
-  margin: 4px;
+  margin: 0;
+  /* Sem margem extra */
+  width: 42px !important;
+  /* Tamanho do botão de enviar do WhatsApp */
+  height: 42px !important;
+  align-self: flex-end;
+  /* Alinhar com a base quando o input cresce */
+}
+
+.send-button .v-icon {
+  font-size: 1.5rem;
+  /* Tamanho do ícone de envio */
 }
 
 .info-item {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.info-item strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #333;
+  font-weight: 500;
 }
 
 @media (max-width: 600px) {
   .message-bubble {
-    max-width: 85%;
+    max-width: 80%;
   }
-  
+
   .chat-header {
     padding: 8px 12px;
+    min-height: 52px;
   }
-  
+
   .messages-area {
-    padding: 12px;
+    padding: 12px 8px;
+  }
+
+  .input-area {
+    padding: 5px 8px;
+  }
+
+  .input-container {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .send-button,
+  .emoji-button,
+  .attach-button {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .send-button .v-icon {
+    font-size: 1.3rem;
+  }
+
+  .message-input :deep(textarea) {
+    max-height: 80px;
+    /* Altura máxima menor em mobile */
   }
 }
 </style>
