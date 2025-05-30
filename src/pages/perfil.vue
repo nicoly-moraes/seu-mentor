@@ -55,7 +55,7 @@
             :is-adding-availability-prop="isAddingAvailability"
             :is-updating-availability-id-prop="isUpdatingAvailabilityId"
             :is-deleting-availability-id-prop="isDeletingAvailabilityId" :format-day-of-week="formatDayOfWeek"
-            :dias-da-semana-prop="diasDaSemana" :tipos-tutoria-prop="tiposTutoria"
+            :dias-da-semana-prop="diasDaSemana" :tiposTutoria-prop="tiposTutoria"
             @add-availability="handleAddAvailability" @toggle-availability-status="handleToggleAvailabilityStatus"
             @delete-availability="handleDeleteAvailability" @availabilities-updated="fetchMentorAvailabilities"
             @operation-success="handleOperationSuccess" @operation-error="handleOperationError" />
@@ -68,11 +68,13 @@
       </v-col>
     </v-row>
 
-    <MentoriaConfirmationDialog v-model="isConfirmationDialogVisible"
-      :editing-tutoring-session-prop="editingTutoringSession" :is-confirming-session-prop="isConfirmingSession"
-      @confirm-session="handleConfirmTutoringSession"
-      @session-confirmed="() => { fetchMentoringSessionsAsMentor(); handleOperationSuccess('Sessão confirmada/atualizada com sucesso!'); }"
-      @operation-error="(msg) => handleOperationError(msg || 'Erro ao confirmar/atualizar mentoria.')" />
+    <!-- Chat Manager - Gerencia todo o sistema de chat -->
+    <ChatManager
+      :mentorias-mentor="mentoringSessionsAsMentor"
+      :mentorias-mentorado="participationSessions"
+      @messageReceived="handleChatMessage"
+      @connectionChanged="handleChatConnection"
+    />
   </v-container>
 </template>
 
@@ -94,6 +96,8 @@ import {
   confirmTutoringSession
 } from '@/services/userService';
 import { getAllDisciplines } from '@/services/disciplineService';
+
+import ChatManager from '@/components/chat/ChatManager.vue';
 
 import UserProfileSidebar from '@/components/profile/UserProfileSidebar.vue';
 import ProfileSectionInicio from '@/components/profile/ProfileSectionInicio.vue';
@@ -146,19 +150,19 @@ const menuItems = [
   { title: 'Conta', value: 'conta', icon: 'mdi-cog' },
 ];
 
-function handleOperationSuccess(message) {
+const handleOperationSuccess = (message) => {
   successMessage.value = message;
   errorMessage.value = '';
   setTimeout(() => successMessage.value = '', 5000);
-}
+};
 
-function handleOperationError(message) {
+const handleOperationError = (message) => {
   errorMessage.value = message;
   successMessage.value = '';
   setTimeout(() => errorMessage.value = '', 7000);
-}
+};
 
-async function fetchUserData() {
+const fetchUserData = async () => {
   isLoading.value = true;
   try {
     const response = await getUserData(authStore.userId);
@@ -176,9 +180,9 @@ async function fetchUserData() {
   } finally {
     isLoading.value = false;
   }
-}
+};
 
-async function fetchMentorAvailabilities() {
+const fetchMentorAvailabilities = async () => {
   isLoadingAvailabilities.value = true;
   try {
     const availabilitiesResponse = await getMentorAvailability(authStore.userId);
@@ -189,9 +193,9 @@ async function fetchMentorAvailabilities() {
   } finally {
     isLoadingAvailabilities.value = false;
   }
-}
+};
 
-async function fetchParticipationSessions() {
+const fetchParticipationSessions = async () => {
   isLoadingParticipationSessions.value = true;
   try {
     const response = await getUserParticipationSessions(authStore.userId);
@@ -202,9 +206,9 @@ async function fetchParticipationSessions() {
   } finally {
     isLoadingParticipationSessions.value = false;
   }
-}
+};
 
-async function fetchMentoringSessionsAsMentor() {
+const fetchMentoringSessionsAsMentor = async () => {
   isLoadingMentoringSessionsAsMentor.value = true;
   try {
     const response = await getUserMentoringSessions(authStore.userId);
@@ -215,9 +219,9 @@ async function fetchMentoringSessionsAsMentor() {
   } finally {
     isLoadingMentoringSessionsAsMentor.value = false;
   }
-}
+};
 
-async function fetchDisciplines() {
+const fetchDisciplines = async () => {
   try {
     const response = await getAllDisciplines();
     disciplines.value = response.data;
@@ -225,9 +229,9 @@ async function fetchDisciplines() {
     console.error('Erro ao buscar disciplinas:', error);
     handleOperationError('Não foi possível carregar as disciplinas.');
   }
-}
+};
 
-function handleUrlParams() {
+const handleUrlParams = () => {
   const section = route.query.section;
   const disciplineId = route.query.disciplineId;
   const disciplineName = route.query.disciplineName;
@@ -268,7 +272,7 @@ function handleUrlParams() {
       });
     }
   }
-}
+};
 
 // Também adicione este watch para reagir quando as disciplinas terminarem de carregar
 watch(() => disciplines.value, (newDisciplines) => {
@@ -422,7 +426,7 @@ const handleConfirmTutoringSession = async (sessionData) => {
   }
 };
 
-function handleMentoriaMentorAtualizada(sessaoAtualizadaDoServidor) {
+const handleMentoriaMentorAtualizada = (sessaoAtualizadaDoServidor) => {
   const index = mentoringSessionsAsMentor.value.findIndex(s => s.id === sessaoAtualizadaDoServidor.id);
   if (index !== -1) {
     mentoringSessionsAsMentor.value[index] = sessaoAtualizadaDoServidor;
@@ -430,11 +434,11 @@ function handleMentoriaMentorAtualizada(sessaoAtualizadaDoServidor) {
     console.warn(`Mentoria ID ${sessaoAtualizadaDoServidor.id} (mentor) não encontrada para atualização. Recarregando lista...`);
     fetchMentoringSessionsAsMentor();
   }
-}
+};
 
-function handleSessionLeftMentorado(tutoringId) {
+const handleSessionLeftMentorado = (tutoringId) => {
   participationSessions.value = participationSessions.value.filter(session => session.id !== tutoringId);
-}
+};
 
 const handleDeleteAccount = async () => {
   if (!authStore.userId) return;
@@ -531,6 +535,17 @@ onMounted(async () => {
     router.push('/login');
   }
 });
+
+// Handlers do Chat
+const handleChatMessage = ({ message, mentoria }) => {
+  console.log('Nova mensagem recebida:', message, 'na mentoria:', mentoria);
+  // Aqui você pode adicionar lógica adicional, como atualizar contadores, etc.
+};
+
+const handleChatConnection = (connected) => {
+  console.log('Status de conexão do chat:', connected ? 'Conectado' : 'Desconectado');
+  // Aqui você pode mostrar indicadores de status se necessário
+};
 </script>
 
 <style scoped>
