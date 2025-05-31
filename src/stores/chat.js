@@ -25,6 +25,10 @@ export const useChatStore = defineStore('chat', {
     showNotification: false,
     lastNotification: null,
     
+    // Controle de notificação ativa
+    notificationTimeout: null,
+    lastNotificationId: null,
+    
     // Loading states
     isLoadingMentorias: false,
     isLoadingMessages: false,
@@ -160,6 +164,7 @@ export const useChatStore = defineStore('chat', {
           debug: import.meta.env.DEV
         });
 
+        console.log('Creating MentorChatClient with config:', { debug: import.meta.env.DEV });
         // Configurar handlers
         this.chatClient.onConnect(() => {
           this.isConnected = true;
@@ -212,7 +217,7 @@ export const useChatStore = defineStore('chat', {
       });
     },
 
-    // Processar mensagem recebida
+    // CORREÇÃO: Processar mensagem recebida
     handleIncomingMessage(message) {
       // Encontrar o chat correspondente
       let chatId = null;
@@ -238,31 +243,39 @@ export const useChatStore = defineStore('chat', {
       
       const messages = this.messages.get(chatId);
       
-      // Verificar duplicatas
+      // Verificar duplicatas com critério mais restrito
       const isDuplicate = messages.some(m => 
         m.id === message.id || 
         (m.message === message.message && 
          String(m.senderId) === String(message.senderId) &&
-         Math.abs(new Date(m.timestamp) - new Date(message.timestamp)) < 5000)
+         Math.abs(new Date(m.timestamp) - new Date(message.timestamp)) < 1000) // Reduzido para 1s
       );
 
       if (!isDuplicate) {
-        messages.push({
+        const newMessage = {
           ...message,
           id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           timestamp: message.timestamp || new Date().toISOString(),
           status: String(message.senderId) === String(this.currentUserId) ? 'sent' : 'received'
-        });
+        };
 
-        // Incrementar contador de não lidas se não for nossa mensagem
+        messages.push(newMessage);
+
+        // CORREÇÃO: Incrementar contador de não lidas se não for nossa mensagem
         if (String(message.senderId) !== String(this.currentUserId)) {
-          // Só incrementa se o chat não estiver selecionado
-          if (!this.selectedChat || this.selectedChat.id !== chatId) {
+          // Verificar se deve mostrar notificação
+          const shouldShowNotification = !this.selectedChat || 
+                                        this.selectedChat.id !== chatId || 
+                                        !document.hasFocus(); // Mostrar se janela não tem foco
+
+          if (shouldShowNotification) {
             const currentCount = this.unreadMessages.get(chatId) || 0;
             this.unreadMessages.set(chatId, currentCount + 1);
             
-            // Mostrar notificação
-            this.showMessageNotification(message, chatId);
+            // Mostrar notificação com delay para evitar conflitos
+            setTimeout(() => {
+              this.showMessageNotification(newMessage, chatId);
+            }, 100);
           }
         }
       }
@@ -359,12 +372,18 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-    // Selecionar um chat
+    // CORREÇÃO: Selecionar um chat
     async selectChat(chat) {
+      const previousChat = this.selectedChat;
       this.selectedChat = chat;
       
       // Marcar como lido
       this.unreadMessages.set(chat.id, 0);
+      
+      // Fechar notificação se for do chat selecionado
+      if (this.lastNotification && this.lastNotification.chatId === chat.id) {
+        this.showNotification = false;
+      }
       
       // Carregar histórico se não tiver mensagens
       if (!this.messages.has(chat.id) || this.messages.get(chat.id).length === 0) {
@@ -372,28 +391,63 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-    // Mostrar notificação
+    // CORREÇÃO: Mostrar notificação com controle de duplicatas
     showMessageNotification(message, chatId) {
       if (!this.notificationsEnabled) return;
 
       const chat = this.allChats.find(c => c.id === chatId);
       if (!chat) return;
 
+      // Verificar se já não está mostrando a mesma notificação
+      const notificationKey = `${chatId}_${message.id}_${message.timestamp}`;
+      if (this.lastNotificationId === notificationKey) {
+        return;
+      }
+
+      // Limpar timeout anterior se existir
+      if (this.notificationTimeout) {
+        clearTimeout(this.notificationTimeout);
+      }
+
+      // Fechar notificação anterior se estiver aberta
+      if (this.showNotification) {
+        this.showNotification = false;
+        
+        // Aguardar um pouco antes de mostrar a nova
+        setTimeout(() => {
+          this.displayNotification(message, chat, chatId, notificationKey);
+        }, 200);
+      } else {
+        this.displayNotification(message, chat, chatId, notificationKey);
+      }
+    },
+
+    // NOVA: Action para exibir notificação
+    displayNotification(message, chat, chatId, notificationKey) {
       this.lastNotification = {
         id: message.id,
         chatId: chatId,
         title: chat.title,
-        message: message.message,
+        message: message.message.length > 50 
+          ? message.message.substring(0, 50) + '...' 
+          : message.message,
         avatar: chat.avatar,
         senderName: message.senderName
       };
       
+      this.lastNotificationId = notificationKey;
       this.showNotification = true;
 
       // Som de notificação
       if (this.soundEnabled) {
         this.playNotificationSound();
       }
+
+      // Auto-hide após 4 segundos
+      this.notificationTimeout = setTimeout(() => {
+        this.showNotification = false;
+        this.lastNotificationId = null;
+      }, 4000);
     },
 
     // Tocar som de notificação
@@ -414,6 +468,12 @@ export const useChatStore = defineStore('chat', {
 
     // Desconectar
     disconnect() {
+      // Limpar timeouts
+      if (this.notificationTimeout) {
+        clearTimeout(this.notificationTimeout);
+        this.notificationTimeout = null;
+      }
+
       if (this.chatClient) {
         this.chatClient.disconnect();
         this.chatClient = null;
@@ -422,6 +482,8 @@ export const useChatStore = defineStore('chat', {
       this.selectedChat = null;
       this.messages.clear();
       this.unreadMessages.clear();
+      this.showNotification = false;
+      this.lastNotificationId = null;
     },
 
     // Reconectar

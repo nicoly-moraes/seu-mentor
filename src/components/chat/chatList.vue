@@ -104,7 +104,7 @@
               }" class="chat-item">
               <template v-slot:prepend>
                 <v-badge :content="chat.unreadCount" :model-value="chat.unreadCount > 0" color="error" overlap
-                  offset-x="8" offset-y="8">
+                  offset-x="-10" offset-y="0" class="v-badge-custom">
                 </v-badge>
               </template>
 
@@ -328,37 +328,158 @@ const selectChat = async (chat) => {
 const formatChatTime = (date) => {
   if (!date) return '';
 
-  const messageDate = new Date(date);
+  // Função auxiliar para normalizar a data
+  const parseDate = (dateInput) => {
+    // Se já é uma instância de Date válida
+    if (dateInput instanceof Date && !isNaN(dateInput.getTime())) {
+      return dateInput;
+    }
+
+    // Se é string
+    if (typeof dateInput === 'string') {
+      // Primeiro, tentar o parse nativo
+      let parsed = new Date(dateInput);
+      
+      // Se deu certo, retornar
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+
+      // Tentar formato brasileiro DD/MM/AAAA HH:mm ou DD/MM/AAAA
+      const brDateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/;
+      const brMatch = dateInput.match(brDateRegex);
+      
+      if (brMatch) {
+        const [, day, month, year, hour = '00', minute = '00'] = brMatch;
+        parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+        
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+
+      // Tentar formato ISO sem timezone
+      const cleanDate = dateInput.replace(/[+-]\d{2}:\d{2}$/, '');
+      parsed = new Date(cleanDate);
+      
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    // Se é number (timestamp)
+    if (typeof dateInput === 'number') {
+      const parsed = new Date(dateInput);
+      if (!isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+
+    return null;
+  };
+
+  // Tentar parsear a data
+  const messageDate = parseDate(date);
+  
+  if (!messageDate) {
+    console.warn('Data inválida recebida:', date);
+    return '';
+  }
+
   const now = new Date();
   const diffInMillis = now - messageDate;
-  const diffInHours = diffInMillis / (1000 * 60 * 60);
-
-  if (diffInMillis < 0) {
-    return messageDate.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const diffInHours = Math.abs(diffInMillis) / (1000 * 60 * 60);
+  
+  // Verificar se é uma data futura (mentoria agendada)
+  const isFutureDate = diffInMillis < -3600000; // -1 hora em millisegundos
+  
+  if (isFutureDate) {
+    // Formatar data futura (mentoria agendada) - PADRÃO BRASILEIRO
+    const day = messageDate.getDate().toString().padStart(2, '0');
+    const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = messageDate.getFullYear();
+    const hours = messageDate.getHours().toString().padStart(2, '0');
+    const minutes = messageDate.getMinutes().toString().padStart(2, '0');
+    
+    // Se for no mesmo ano
+    if (year === now.getFullYear()) {
+      // Se não for meia-noite, mostrar com horário
+      if (hours !== '00' || minutes !== '00') {
+        return `${day}/${month} às ${hours}:${minutes}`;
+      } else {
+        return `${day}/${month}`;
+      }
+    } else {
+      // Anos diferentes
+      if (hours !== '00' || minutes !== '00') {
+        return `${day}/${month}/${year} às ${hours}:${minutes}`;
+      } else {
+        return `${day}/${month}/${year}`;
+      }
+    }
   }
 
-  if (diffInHours < 1) {
+  // Datas no passado (mensagens e mentorias finalizadas)
+  
+  // Mensagens muito recentes (menos de 1 minuto)
+  if (diffInMillis < 60000 && diffInMillis >= 0) {
     return 'Agora';
-  } else if (diffInHours < 24) {
-    return messageDate.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } else if (diffInHours < 48) {
-    return 'Ontem';
-  } else if (diffInHours < 168) { // 7 dias
-    return messageDate.toLocaleDateString('pt-BR', { weekday: 'short' });
-  } else {
-    return messageDate.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit'
-    });
   }
+  
+  // Menos de 1 hora
+  if (diffInHours < 1 && diffInMillis >= 0) {
+    const minutes = Math.floor(diffInMillis / 60000);
+    return `${minutes} min atrás`;
+  }
+  
+  // Verificar se é hoje
+  const isToday = messageDate.toDateString() === now.toDateString();
+  
+  if (isToday) {
+    // Se foi hoje, mostrar apenas a hora (se não for meia-noite)
+    const hours = messageDate.getHours();
+    const minutes = messageDate.getMinutes();
+    
+    if (hours === 0 && minutes === 0) {
+      // Se for exatamente meia-noite, mostrar como data do dia anterior
+      const day = messageDate.getDate().toString().padStart(2, '0');
+      const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
+      return `${day}/${month}`;
+    } else {
+      // Mostrar horário no formato brasileiro
+      const hourStr = hours.toString().padStart(2, '0');
+      const minuteStr = minutes.toString().padStart(2, '0');
+      return `${hourStr}:${minuteStr}`;
+    }
+  }
+  
+  // Verificar se é ontem
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = messageDate.toDateString() === yesterday.toDateString();
+  
+  if (isYesterday) {
+    return 'Ontem';
+  }
+  
+  // Esta semana (menos de 7 dias) - dias da semana em português
+  if (diffInHours < 168 && diffInMillis >= 0) {
+    const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    return daysOfWeek[messageDate.getDay()];
+  }
+  
+  // Formatação para datas mais antigas - SEMPRE PADRÃO BRASILEIRO
+  const day = messageDate.getDate().toString().padStart(2, '0');
+  const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
+  const year = messageDate.getFullYear();
+  
+  // Mesmo ano - mostrar DD/MM
+  if (year === now.getFullYear()) {
+    return `${day}/${month}`;
+  }
+  
+  // Anos diferentes - mostrar DD/MM/AAAA (ano completo para maior clareza)
+  return `${day}/${month}/${year}`;
 };
 
 const getStatusIcon = (status) => {
@@ -410,8 +531,8 @@ const toggleDrawer = () => {
 };
 
 const close = () => {
-  visible.value = false;
-  selectedChat.value = null; // Redefine o chat selecionado localmente
+  chatStore.selectedChat = null;
+  selectChat.value = null
   emit('close');
 };
 
@@ -684,6 +805,7 @@ watch(visible, (newValue) => {
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
+  padding: inherit
 }
 
 .main-content {
@@ -837,6 +959,11 @@ watch(visible, (newValue) => {
 
 .feature-text {
   flex: 1;
+}
+
+.v-badge-custom {
+  bottom: calc(100% - 10px) !important;
+  left: calc(100% - 0px) !important;
 }
 
 .feature-title {

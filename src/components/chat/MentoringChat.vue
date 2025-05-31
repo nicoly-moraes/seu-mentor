@@ -332,46 +332,160 @@ const formatMessageTime = (timestamp) => {
   return new Date(timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 };
 
-// Using the corrected formatDate function from the prompt
+// Função formatDate corrigida
 const formatDate = (dateInput) => {
   if (!dateInput) return 'Data não disponível';
+  
   try {
     let date;
+    
+    // Se for número (timestamp)
+    if (typeof dateInput === 'number') {
+      date = new Date(dateInput);
+    } 
+    // Se for string
+    else if (typeof dateInput === 'string') {
+      const trimmedDate = dateInput.trim();
+      if (!trimmedDate) return 'Data não disponível';
+      
+      // Tenta criar data diretamente (funciona para ISO 8601)
+      date = new Date(trimmedDate);
+      
+      // Se falhou e tem espaço sem T, tenta adicionar T
+      if (isNaN(date.getTime()) && trimmedDate.includes(' ') && !trimmedDate.includes('T')) {
+        date = new Date(trimmedDate.replace(' ', 'T'));
+      }
+      
+      // Se ainda falhou e tem formato DD/MM/YYYY
+      if (isNaN(date.getTime()) && trimmedDate.includes('/')) {
+        const parts = trimmedDate.split(' ');
+        const datePart = parts[0];
+        const timePart = parts[1];
+        
+        const dateComponents = datePart.split('/');
+        
+        if (dateComponents.length === 3) {
+          const [day, month, year] = dateComponents.map(Number);
+          
+          // Valida componentes
+          if (day && month && year) {
+            if (timePart) {
+              const timeComponents = timePart.split(':').map(Number);
+              const [hour = 0, minute = 0, second = 0] = timeComponents;
+              date = new Date(year, month - 1, day, hour, minute, second);
+            } else {
+              date = new Date(year, month - 1, day);
+            }
+          }
+        }
+      }
+      
+      // Se ainda falhou, tenta verificar se ano está com 2 dígitos
+      if (isNaN(date.getTime()) && trimmedDate.includes('/')) {
+        const parts = trimmedDate.split(' ');
+        const datePart = parts[0];
+        const dateComponents = datePart.split('/');
+        
+        if (dateComponents.length === 3) {
+          const [day, month, yearStr] = dateComponents;
+          const dayNum = Number(day);
+          const monthNum = Number(month);
+          let yearNum = Number(yearStr);
+          
+          // Se o ano tem apenas 2 dígitos, assume século 21
+          if (yearNum < 100) {
+            yearNum = 2000 + yearNum;
+          }
+          
+          if (dayNum && monthNum && yearNum) {
+            date = new Date(yearNum, monthNum - 1, dayNum);
+          }
+        }
+      }
+    } 
+    // Se for objeto Date
+    else if (dateInput instanceof Date) {
+      date = new Date(dateInput);
+    } 
+    else {
+      console.warn('Formato de data não reconhecido:', dateInput);
+      return 'Data inválida';
+    }
+    
+    // Verifica se a data é válida
+    if (!date || isNaN(date.getTime())) {
+      console.warn('Data inválida após tentativas de conversão:', dateInput);
+      return 'Data inválida';
+    }
+    
+    // Formata a data
+    const options = {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    };
+    
+    // Só adiciona hora/minuto se não for 00:00
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    if (hours !== 0 || minutes !== 0) {
+      options.hour = '2-digit';
+      options.minute = '2-digit';
+    }
+    
+    return date.toLocaleDateString('pt-BR', options);
+    
+  } catch (error) {
+    console.error('Erro ao formatar data:', error, 'Valor recebido:', dateInput);
+    return 'Erro ao formatar data';
+  }
+};
+
+// Função alternativa específica para data da mentoria (sempre sem hora)
+const formatMentoringDate = (dateInput) => {
+  if (!dateInput) return 'Data não disponível';
+  
+  try {
+    let date;
+    
+    // Processa a data similar à função anterior
     if (typeof dateInput === 'number') {
       date = new Date(dateInput);
     } else if (typeof dateInput === 'string') {
       const trimmedDate = dateInput.trim();
       if (!trimmedDate) return 'Data não disponível';
-      date = new Date(trimmedDate);
-      if (isNaN(date.getTime()) && trimmedDate.includes(' ') && !trimmedDate.includes('T')) {
-        date = new Date(trimmedDate.replace(' ', 'T'));
-      }
-      if (isNaN(date.getTime()) && trimmedDate.includes('/')) {
-        const [datePart, timePart] = trimmedDate.split(' ');
-        const [day, month, year] = datePart.split('/');
-        if (timePart) {
-          const [hour, minute] = timePart.split(':');
-          date = new Date(year, month - 1, day, hour || 0, minute || 0);
-        } else {
+      
+      // Remove horário se existir (pega apenas a parte da data)
+      const datePart = trimmedDate.split(' ')[0];
+      
+      // Se tem formato DD/MM/YYYY
+      if (datePart.includes('/')) {
+        const [day, month, year] = datePart.split('/').map(Number);
+        if (day && month && year) {
           date = new Date(year, month - 1, day);
         }
+      } else {
+        // Tenta parse direto
+        date = new Date(datePart);
       }
     } else if (dateInput instanceof Date) {
-      date = dateInput;
-    } else {
-      console.warn('Formato de data não reconhecido:', dateInput);
+      date = new Date(dateInput);
+    }
+    
+    if (!date || isNaN(date.getTime())) {
       return 'Data inválida';
     }
-    if (isNaN(date.getTime())) {
-      console.warn('Data inválida após tentativas de conversão:', dateInput);
-      return 'Data inválida';
-    }
+    
+    // Retorna apenas a data (sem horário)
     return date.toLocaleDateString('pt-BR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     });
+    
   } catch (error) {
-    console.error('Erro ao formatar data:', error, 'Valor recebido:', dateInput);
+    console.error('Erro ao formatar data da mentoria:', error, dateInput);
     return 'Erro ao formatar data';
   }
 };
@@ -485,22 +599,36 @@ watch(() => props.mentoria, async (newMentoria, oldMentoria) => {
 
 
 // Watch messages for the current chat to handle auto-scroll and new message counter
+// ===================================================
+// CORREÇÃO NO WATCHER DE MENSAGENS - LÓGICA MELHORADA
+// ===================================================
 watch(currentChatMessages, (newMessages, oldMessages) => {
-  if (newMessages.length > oldMessages.length) { // New message(s) arrived
-    const lastMessage = newMessages[newMessages.length - 1];
-    if (shouldAutoScroll() || (lastMessage && isOwnMessage(lastMessage))) {
-      nextTick(() => scrollToBottom('smooth'));
-    } else {
-      // If not auto-scrolling and message is not own, increment counter
-      if (lastMessage && !isOwnMessage(lastMessage)) {
-         newMessagesBelowCount.value += newMessages.length - oldMessages.length;
+  if (newMessages.length > oldMessages.length) {
+    console.log(`💬 Novas mensagens no chat atual: ${newMessages.length - oldMessages.length}`);
+    
+    const newMessagesReceived = newMessages.slice(oldMessages.length);
+    let shouldAutoScrollToBottom = false;
+    
+    newMessagesReceived.forEach(message => {
+      if (isOwnMessage(message)) {
+        shouldAutoScrollToBottom = true; // Sempre scroll para próprias mensagens
+      } else {
+        if (shouldAutoScroll()) {
+          shouldAutoScrollToBottom = true;
+        } else {
+          // Incrementar contador apenas para mensagens de outros
+          newMessagesBelowCount.value += 1;
+        }
       }
+    });
+    
+    if (shouldAutoScrollToBottom) {
+      nextTick(() => scrollToBottom('smooth'));
     }
+  } else if (newMessages.length > 0 && oldMessages.length === 0) {
+    // Histórico carregado
+    nextTick(() => scrollToBottom('auto'));
   }
-  // If messages are cleared (e.g., history reloaded or chat changed), ensure scroll.
-   else if (newMessages.length > 0 && oldMessages.length === 0) {
-     nextTick(() => scrollToBottom('auto'));
-   }
 }, { deep: true });
 
 

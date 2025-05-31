@@ -19,8 +19,8 @@
         :model-value="chatStore.totalUnreadCount > 0"
         color="error"
         overlap
-        :offset-x="8"
-        :offset-y="8"
+        :offset-x="0"
+        :offset-y="2"
       >
         <v-icon size="28">mdi-message-text</v-icon>
       </v-badge>
@@ -145,7 +145,10 @@ const initializeChat = async () => {
 };
 
 // Watchers
-watch(() => chatStore.isConnected, (connected) => {
+// CORREÇÃO no watcher de conexão:
+watch(() => chatStore.isConnected, (connected, wasConnected) => {
+  console.log(`🔗 Conexão mudou: ${wasConnected} -> ${connected}`);
+  
   if (props.showConnectionIndicator) {
     connectionStatus.value = {
       color: connected ? 'success' : 'error',
@@ -158,13 +161,26 @@ watch(() => chatStore.isConnected, (connected) => {
   emit('connection-changed', connected);
 });
 
-// Emitir eventos de mensagem
-watch(() => chatStore.messages, () => {
-  // Pegar a última mensagem adicionada
-  const allMessages = Array.from(chatStore.messages.values()).flat();
-  if (allMessages.length > 0) {
-    const lastMessage = allMessages[allMessages.length - 1];
-    emit('message', lastMessage);
+// CORREÇÃO no watcher de mensagens:
+watch(() => chatStore.messages, (newMessages, oldMessages) => {
+  console.log('📨 Mensagens atualizadas:', {
+    totalChats: newMessages.size,
+    chatIds: Array.from(newMessages.keys())
+  });
+  
+  // Verificar se há novas mensagens
+  let hasNewMessages = false;
+  for (const [chatId, messages] of newMessages.entries()) {
+    const oldChatMessages = oldMessages?.get(chatId) || [];
+    if (messages.length > oldChatMessages.length) {
+      hasNewMessages = true;
+      const newMessagesCount = messages.length - oldChatMessages.length;
+      console.log(`📬 ${newMessagesCount} nova(s) mensagem(ns) no chat ${chatId}`);
+      
+      // Emitir evento da última mensagem
+      const lastMessage = messages[messages.length - 1];
+      emit('message', lastMessage);
+    }
   }
 }, { deep: true });
 
@@ -184,8 +200,24 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Não desconectar aqui, pois o chat pode ser usado em outras páginas
-  // chatStore.disconnect();
+  if (chatStore.notificationTimeout) {
+    clearTimeout(chatStore.notificationTimeout);
+  }
+  
+  document.removeEventListener('visibilitychange', () => {});
+});
+
+const documentVisibility = ref(document.visibilityState);
+
+document.addEventListener('visibilitychange', () => {
+  documentVisibility.value = document.visibilityState;
+  console.log('👁️ Visibilidade do documento:', documentVisibility.value);
+  
+  // Se voltou a ficar visível, marcar mensagens como lidas
+  if (documentVisibility.value === 'visible' && chatStore.selectedChat) {
+    chatStore.unreadMessages.set(chatStore.selectedChat.id, 0);
+    markVisibleMessagesAsRead();
+  }
 });
 
 // Expor métodos para uso externo
