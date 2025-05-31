@@ -5,6 +5,7 @@
       v-if="!chatStore.chatListOpen && chatStore.hasActiveChats"
       fab
       fixed
+      rounded
       bottom
       right
       color="primary"
@@ -214,6 +215,10 @@ defineExpose({
   z-index: 1001;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   transition: all 0.3s ease;
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  border-radius: 50% !important;
 }
 
 .chat-fab:hover {

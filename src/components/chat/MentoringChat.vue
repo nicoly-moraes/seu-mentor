@@ -124,7 +124,7 @@
         <v-textarea 
           v-model="newMessage" 
           :placeholder="getInputPlaceholder()" 
-          variant="solo" 
+          variant="solo"
           density="compact"
           hide-details 
           single-line 
@@ -547,7 +547,7 @@ onUnmounted(() => {
 .chat-header {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8.5px 16px;
   background-color: #004aad; /* Primary color from theme */
   color: white;
   min-height: 56px; /* Standard app bar height */
@@ -739,7 +739,6 @@ onUnmounted(() => {
   font-size: 0.65rem; min-width: 14px; height: 14px; padding: 0 3px; line-height: 14px;
 }
 
-
 .input-area {
   padding: 6px 10px; 
   background-color: #f0f2f5; /* Match messages area bg or slightly different */
@@ -768,7 +767,7 @@ onUnmounted(() => {
 .message-input {
   flex-grow: 1;
   align-self: center; /* Center when single line */
-  padding: 0; 
+  padding: 0;
 }
 
 .message-input :deep(.v-input__control) { min-height: auto !important; }
@@ -777,20 +776,19 @@ onUnmounted(() => {
   box-shadow: none !important; 
   background-color: transparent !important;
   min-height: auto;
-  line-height: 1.4; /* Better line spacing for auto-grow */
+  line-height: 1.4;/* Better line spacing for auto-grow */
 }
 .message-input :deep(textarea) { 
   padding: 0 !important; /* Remove textarea's own padding */
   margin: 0; 
   max-height: 100px; /* Limit max height of auto-grow */
-  overflow-y: auto !important; /* Ensure scroll within textarea if max-rows exceeded */
+  overflow-y: auto !important;/* Ensure scroll within textarea if max-rows exceeded */
 }
 .message-input :deep(.v-field__outline) { display: none; } /* Hide default outline */
 .message-input :deep(.v-field__append-inner) { 
   padding-top: 0; 
-  align-self: center; /* Align attachment icon */
+  align-self: center;/* Align attachment icon */
 }
-
 
 .send-button {
   margin: 0;
@@ -799,7 +797,6 @@ onUnmounted(() => {
   align-self: flex-end; /* Keep it at the bottom as textarea grows */
 }
 .send-button .v-icon { font-size: 1.5rem; } /* Send icon size */
-
 
 .info-item { margin-bottom: 10px; font-size: 0.9rem; }
 .info-item strong { display: block; margin-bottom: 3px; color: #333; font-weight: 500; }
