@@ -9,9 +9,9 @@
 
     <v-card class="chat-list-container">
       <!-- Sidebar de Conversas -->
-      <v-navigation-drawer v-model="drawer" :rail="!$vuetify.display.mdAndUp && !drawerExpanded"
-        :permanent="$vuetify.display.mdAndUp" :temporary="!$vuetify.display.mdAndUp" width="400" class="chat-sidebar"
-        :class="{ 'drawer-expanded': drawerExpanded }">
+      <v-navigation-drawer v-model="drawer" :rail="!mdAndUp && !drawerExpanded" :permanent="mdAndUp"
+        :temporary="!mdAndUp" width="400" class="chat-sidebar" :class="{ 'drawer-expanded': drawerExpanded }"
+        :style="chatSidebarStyles" rounded>
         <!-- Header da Sidebar -->
         <v-toolbar color="primary" dark flat class="sidebar-header">
           <v-btn
@@ -263,7 +263,7 @@
       </v-main>
 
       <!-- Botão flutuante para mobile -->
-      <v-btn v-if="$vuetify.display.smAndDown && chatStore.selectedChat" fab fixed bottom left color="primary"
+      <v-btn v-if="smAndDown.value && chatStore.selectedChat" fab fixed bottom left color="primary"
         @click="toggleDrawer" class="mobile-drawer-toggle">
         <v-icon>mdi-menu</v-icon>
       </v-btn>
@@ -276,6 +276,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useChatStore } from '@/stores/chat';
 import { useAuthStore } from '@/stores/auth';
 import MentoringChat from './MentoringChat.vue';
+import { useDisplay } from 'vuetify';
 
 const props = defineProps({
   modelValue: {
@@ -296,6 +297,7 @@ const drawerExpanded = ref(false);
 const searchQuery = ref('');
 const selectedFilter = ref('all');
 const showArchivedChats = ref(false);
+const { mdAndUp, smAndDown } = useDisplay();
 
 // Computed
 const visible = computed({
@@ -355,7 +357,7 @@ const selectChat = async (chat) => {
   await chatStore.selectChat(chat);
 
   // Em mobile, fechar o drawer
-  if (!$vuetify.display.mdAndUp) {
+  if (!mdAndUp.value) {
     drawer.value = false;
   }
 };
@@ -540,7 +542,7 @@ const getStatusColor = (status) => {
 // Handlers
 const handleChatBack = () => {
   chatStore.selectedChat = null;
-  if (!$vuetify.display.mdAndUp) {
+  if (!mdAndUp.value) {
     drawer.value = true;
   }
 };
