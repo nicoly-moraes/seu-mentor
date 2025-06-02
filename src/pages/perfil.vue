@@ -68,13 +68,15 @@
       </v-col>
     </v-row>
 
-    <!-- Chat Manager - Gerencia todo o sistema de chat -->
-    <ChatManager
-      :mentorias-mentor="mentoringSessionsAsMentor"
-      :mentorias-mentorado="participationSessions"
-      @messageReceived="handleChatMessage"
-      @connectionChanged="handleChatConnection"
+    <MentoriaConfirmationDialog 
+      v-if="editingTutoringSession"
+      v-model="isConfirmationDialogVisible"
+      :session-data="editingTutoringSession"
+      :is-confirming="isConfirmingSession"
+      @confirm="handleConfirmTutoringSession"
+      @close="isConfirmationDialogVisible = false"
     />
+
   </v-container>
 </template>
 
@@ -82,6 +84,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+
 import {
   getUserData,
   updateUserData,
@@ -132,6 +135,7 @@ const successMessage = ref('');
 
 const disponibilidadesComponent = ref(null);
 
+// Estado para o MentoriaConfirmationDialog
 const editingTutoringSession = ref(null);
 const isConfirmationDialogVisible = ref(false);
 const isConfirmingSession = ref(false);
@@ -236,35 +240,24 @@ const handleUrlParams = () => {
   const disciplineId = route.query.disciplineId;
   const disciplineName = route.query.disciplineName;
 
-  console.log('[Profile] handleUrlParams:', { section, disciplineId, disciplineName });
-
   if (section) {
     activeSection.value = section;
   }
 
-  // Se há parâmetros de disciplina e estamos na seção de disponibilidades
   if (section === 'disponibilidades' && disciplineId && disciplineName) {
-    console.log('[Profile] Tentando pré-selecionar disciplina...');
-    
-    // Função para tentar pré-selecionar a disciplina
     const tryPreSelectDiscipline = () => {
       if (disponibilidadesComponent.value && 
           typeof disponibilidadesComponent.value.preSelectDiscipline === 'function' &&
           disciplines.value.length > 0) {
-        
-        console.log('[Profile] Executando pré-seleção da disciplina');
         disponibilidadesComponent.value.preSelectDiscipline(parseInt(disciplineId), disciplineName);
         return true;
       }
       return false;
     };
 
-    // Tenta imediatamente
     if (!tryPreSelectDiscipline()) {
-      // Se não conseguiu, aguarda o próximo tick e tenta novamente
       nextTick(() => {
         if (!tryPreSelectDiscipline()) {
-          // Se ainda não conseguiu, aguarda um pouco mais (para caso as disciplinas ainda estejam carregando)
           setTimeout(() => {
             tryPreSelectDiscipline();
           }, 500);
@@ -274,22 +267,17 @@ const handleUrlParams = () => {
   }
 };
 
-// Também adicione este watch para reagir quando as disciplinas terminarem de carregar
 watch(() => disciplines.value, (newDisciplines) => {
   if (newDisciplines && newDisciplines.length > 0) {
-    console.log('[Profile] Disciplinas carregadas, verificando se precisa pré-selecionar...');
-    
     const section = route.query.section;
     const disciplineId = route.query.disciplineId;
     const disciplineName = route.query.disciplineName;
     
     if (section === 'disponibilidades' && disciplineId && disciplineName && 
         activeSection.value === 'disponibilidades') {
-      
       nextTick(() => {
         if (disponibilidadesComponent.value && 
             typeof disponibilidadesComponent.value.preSelectDiscipline === 'function') {
-          console.log('[Profile] Pré-selecionando disciplina após carregamento das disciplinas');
           disponibilidadesComponent.value.preSelectDiscipline(parseInt(disciplineId), disciplineName);
         }
       });
@@ -348,13 +336,12 @@ const handleToggleAvailabilityStatus = async ({ availability, newStatus }) => {
       if (index !== -1) {
         mentorAvailabilities.value[index] = response.data;
       } else {
-        console.warn(`Disponibilidade ID ${response.data.id} não encontrada para atualização de status. Recarregando...`);
         await fetchMentorAvailabilities();
       }
       handleOperationSuccess(`Status da disponibilidade para ${availability.discipline.name || availability.discipline.disciplineName} atualizado!`);
     } else {
-      handleOperationSuccess(`Status atualizado! Atualizando lista...`);
       await fetchMentorAvailabilities();
+       handleOperationSuccess(`Status atualizado! Atualizando lista...`);
     }
   } catch (error) {
     console.error('Erro ao atualizar status da disponibilidade:', error);
@@ -374,11 +361,10 @@ const handleAddAvailability = async (availabilityData) => {
       mentorAvailabilities.value.push(response.data);
       handleOperationSuccess('Nova disponibilidade adicionada com sucesso!');
     } else {
-      handleOperationSuccess('Nova disponibilidade adicionada! Atualizando lista...');
       await fetchMentorAvailabilities();
+      handleOperationSuccess('Nova disponibilidade adicionada! Atualizando lista...');
     }
     
-    // Reset do formulário após adicionar com sucesso
     if (disponibilidadesComponent.value && typeof disponibilidadesComponent.value.resetForm === 'function') {
       disponibilidadesComponent.value.resetForm();
     }
@@ -411,16 +397,26 @@ const openConfirmationForm = (session) => {
   isConfirmationDialogVisible.value = true;
 };
 
-const handleConfirmTutoringSession = async (sessionData) => {
+const handleConfirmTutoringSession = async (sessionDataFromDialog) => {
   if (!editingTutoringSession.value || !editingTutoringSession.value.id) return;
   isConfirmingSession.value = true;
   try {
-    await confirmTutoringSession(editingTutoringSession.value.id, sessionData);
+    const updatedSession = await confirmTutoringSession(editingTutoringSession.value.id, sessionDataFromDialog);
+    
+    const index = mentoringSessionsAsMentor.value.findIndex(s => s.id === updatedSession.data.id);
+    if (index !== -1) {
+      mentoringSessionsAsMentor.value[index] = updatedSession.data;
+    } else {
+      fetchMentoringSessionsAsMentor();
+    }
+    
+    handleOperationSuccess('Mentoria atualizada com sucesso!');
     isConfirmationDialogVisible.value = false;
     editingTutoringSession.value = null;
+
   } catch (error) {
-    console.error('Erro ao confirmar/atualizar mentoria (via dialog antigo):', error);
-    handleOperationError(error.response?.data?.message || 'Erro ao confirmar/atualizar mentoria (via dialog antigo).');
+    console.error('Erro ao confirmar/atualizar mentoria:', error);
+    handleOperationError(error.response?.data?.message || 'Erro ao confirmar/atualizar mentoria.');
   } finally {
     isConfirmingSession.value = false;
   }
@@ -431,7 +427,6 @@ const handleMentoriaMentorAtualizada = (sessaoAtualizadaDoServidor) => {
   if (index !== -1) {
     mentoringSessionsAsMentor.value[index] = sessaoAtualizadaDoServidor;
   } else {
-    console.warn(`Mentoria ID ${sessaoAtualizadaDoServidor.id} (mentor) não encontrada para atualização. Recarregando lista...`);
     fetchMentoringSessionsAsMentor();
   }
 };
@@ -459,11 +454,23 @@ const handleDeleteAccount = async () => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '';
-  if (String(dateString).includes('/')) return dateString;
-  const [year, month, dayPart] = String(dateString).split('-');
-  const day = dayPart ? dayPart.split('T')[0] : '';
-  if (!year || !month || !day) return dateString;
-  return `${day}/${month}/${year}`;
+  if (String(dateString).includes('/') && String(dateString).length === 10) {
+      const parts = String(dateString).split('/');
+      if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+          return dateString;
+      }
+  }
+  try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) throw new Error("Data inválida");
+
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+  } catch (e) {
+      return dateString; 
+  }
 };
 
 const formatDayOfWeek = (day) => {
@@ -481,6 +488,7 @@ const getStatusColor = (status) => {
     'PENDENTE_CONFIRMACAO_MENTOR': 'warning',
     'PENDENTE': 'warning',
     'CONFIRMADA': 'success',
+    'EM_ANDAMENTO': 'primary',
     'CONCLUIDA': 'info',
     'CANCELADA': 'error'
   };
@@ -514,7 +522,6 @@ watch(isConfirmationDialogVisible, (newValue) => {
   }
 });
 
-// Watch para mudanças na rota
 watch(() => route.query, () => {
   handleUrlParams();
 }, { deep: true });
@@ -528,24 +535,11 @@ onMounted(async () => {
       fetchMentoringSessionsAsMentor(),
       fetchDisciplines()
     ]);
-    
-    // Lidar com parâmetros da URL após carregar os dados
     handleUrlParams();
   } else {
     router.push('/login');
   }
 });
-
-// Handlers do Chat
-const handleChatMessage = ({ message, mentoria }) => {
-  console.log('Nova mensagem recebida:', message, 'na mentoria:', mentoria);
-  // Aqui você pode adicionar lógica adicional, como atualizar contadores, etc.
-};
-
-const handleChatConnection = (connected) => {
-  console.log('Status de conexão do chat:', connected ? 'Conectado' : 'Desconectado');
-  // Aqui você pode mostrar indicadores de status se necessário
-};
 </script>
 
 <style scoped>
