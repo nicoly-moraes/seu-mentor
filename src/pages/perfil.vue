@@ -35,9 +35,14 @@
 
           <ProfileSectionMentoriasMentorado v-else-if="activeSection === 'mentorias-mentorado'"
             :participation-sessions="participationSessions"
-            :is-loading-participation-sessions="isLoadingParticipationSessions" :format-date="formatDate"
-            :get-status-color="getStatusColor" @operation-success="handleOperationSuccess"
-            @operation-error="handleOperationError" @session-left="handleSessionLeftMentorado" />
+            :is-loading-participation-sessions="isLoadingParticipationSessions"
+            :format-date="formatDate"
+            :get-status-color="getStatusColor"
+            @operation-success="handleOperationSuccess"
+            @operation-error="handleOperationError"
+            @session-left="handleSessionLeftMentorado"
+            @refresh-sessions="fetchParticipationSessions"
+          />
 
           <ProfileSectionMentoriasMentor v-else-if="activeSection === 'mentorias-mentor'"
             :mentoring-sessions-as-mentor="mentoringSessionsAsMentor"
@@ -68,7 +73,7 @@
       </v-col>
     </v-row>
 
-    <MentoriaConfirmationDialog 
+    <MentoriaConfirmationDialog
       v-if="editingTutoringSession"
       v-model="isConfirmationDialogVisible"
       :session-data="editingTutoringSession"
@@ -246,7 +251,7 @@ const handleUrlParams = () => {
 
   if (section === 'disponibilidades' && disciplineId && disciplineName) {
     const tryPreSelectDiscipline = () => {
-      if (disponibilidadesComponent.value && 
+      if (disponibilidadesComponent.value &&
           typeof disponibilidadesComponent.value.preSelectDiscipline === 'function' &&
           disciplines.value.length > 0) {
         disponibilidadesComponent.value.preSelectDiscipline(parseInt(disciplineId), disciplineName);
@@ -272,11 +277,11 @@ watch(() => disciplines.value, (newDisciplines) => {
     const section = route.query.section;
     const disciplineId = route.query.disciplineId;
     const disciplineName = route.query.disciplineName;
-    
-    if (section === 'disponibilidades' && disciplineId && disciplineName && 
+
+    if (section === 'disponibilidades' && disciplineId && disciplineName &&
         activeSection.value === 'disponibilidades') {
       nextTick(() => {
-        if (disponibilidadesComponent.value && 
+        if (disponibilidadesComponent.value &&
             typeof disponibilidadesComponent.value.preSelectDiscipline === 'function') {
           disponibilidadesComponent.value.preSelectDiscipline(parseInt(disciplineId), disciplineName);
         }
@@ -364,7 +369,8 @@ const handleAddAvailability = async (availabilityData) => {
       await fetchMentorAvailabilities();
       handleOperationSuccess('Nova disponibilidade adicionada! Atualizando lista...');
     }
-    
+
+    // Reset do formulário após adicionar com sucesso
     if (disponibilidadesComponent.value && typeof disponibilidadesComponent.value.resetForm === 'function') {
       disponibilidadesComponent.value.resetForm();
     }
@@ -402,14 +408,14 @@ const handleConfirmTutoringSession = async (sessionDataFromDialog) => {
   isConfirmingSession.value = true;
   try {
     const updatedSession = await confirmTutoringSession(editingTutoringSession.value.id, sessionDataFromDialog);
-    
+
     const index = mentoringSessionsAsMentor.value.findIndex(s => s.id === updatedSession.data.id);
     if (index !== -1) {
       mentoringSessionsAsMentor.value[index] = updatedSession.data;
     } else {
       fetchMentoringSessionsAsMentor();
     }
-    
+
     handleOperationSuccess('Mentoria atualizada com sucesso!');
     isConfirmationDialogVisible.value = false;
     editingTutoringSession.value = null;
@@ -469,7 +475,7 @@ const formatDate = (dateString) => {
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
   } catch (e) {
-      return dateString; 
+      return dateString;
   }
 };
 

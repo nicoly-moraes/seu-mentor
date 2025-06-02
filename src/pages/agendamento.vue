@@ -4,36 +4,37 @@
 
     <v-row>
       <v-col cols="12" md="4" lg="3">
-        <AgendamentoFilters 
-          :filtros="filtros" 
+        <AgendamentoFilters
+          :filtros="filtros"
           :disciplinas="disciplinas"
-          :carregando-disciplinas="carregandoDisciplinas" 
+          :carregando-disciplinas="carregandoDisciplinas"
           :data-selecionada="dataSelecionada"
-          :tipos-mentoria="tiposMentoria" 
-          :data-minima="dataMinima" 
+          :tipos-mentoria="tiposMentoria"
+          :data-minima="dataMinima"
           :data-maxima="dataMaxima"
-          @update:disciplina="handleDisciplinaChange" 
+          @update:disciplina="handleDisciplinaChange"
           @update:tipo="filtros.tipo = $event"
-          @update:data-selecionada="handleDataChange" 
-          @limpar-filtros="limparFiltros" 
-          @limpar-data="limparData" 
+          @update:data-selecionada="handleDataChange"
+          @limpar-filtros="limparFiltros"
+          @limpar-data="limparData"
         />
       </v-col>
 
       <v-col cols="12" md="8" lg="9">
-        <AgendamentoMentoriasList 
-          :mentorias-filtradas="mentoriasFiltradas" 
+        <AgendamentoMentoriasList
+          :mentorias-filtradas="mentoriasFiltradas"
           :mentoria-selecionada="mentoriaSelecionada"
-          :disciplina-selecionada="disciplinaSelecionada" 
+          :disciplina-selecionada="disciplinaSelecionada"
           :data-selecionada="dataSelecionada"
-          :carregando="carregandoMentorias" 
+          :carregando="carregandoMentorias"
           :formatar-data="formatarData"
           :current-user-id="authStore.userId"
           :agendando="agendando"
           :saindo-mentoria="saindoMentoria"
+          :mentor-average-rating="mentorAverageRating"
           @selecionar-mentoria="selecionarMentoria"
-          @limpar-filtros="limparFiltros" 
-          @limpar-data="limparData" 
+          @limpar-filtros="limparFiltros"
+          @limpar-data="limparData"
           @limpar-disciplina="limparDisciplina"
           @agendar="agendarMentoria"
           @sair-mentoria="sairMentoria"
@@ -41,19 +42,19 @@
       </v-col>
     </v-row>
 
-    <!-- Dialog de Confirmação -->
-    <AgendamentoConfirmationDialog 
-      :visible="dialogConfirmacao" 
+    <AgendamentoConfirmationDialog
+      :visible="dialogConfirmacao"
       :mentoria="mentoriaSelecionada"
-      :disciplina-selecionada="disciplinaSelecionada" 
-      :data-selecionada="dataSelecionada" 
+      :disciplina-selecionada="disciplinaSelecionada"
+      :data-selecionada="dataSelecionada"
       :topico="topicoMentoria"
-      :confirmando="agendando" 
-      :formatar-data="formatarData" 
+      :confirmando="agendando"
+      :formatar-data="formatarData"
+      :mentor-average-rating="mentorAverageRating"
       @update:visible="dialogConfirmacao = $event"
-      @update:topico="topicoMentoria = $event" 
-      @confirmar="confirmarAgendamento" 
-      @cancelar="cancelarAgendamento" 
+      @update:topico="topicoMentoria = $event"
+      @confirmar="confirmarAgendamento"
+      @cancelar="cancelarAgendamento"
     />
   </v-container>
 </template>
@@ -63,12 +64,8 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { getAllDisciplines } from '@/services/disciplineService';
-import {
-  getAvailableTutoringsForUserAndDiscipline,
-  scheduleTutoring,
-  addParticipant,
-  leaveTutoring
-} from '@/services/tutoringService';
+import { getAvailableTutoringsForUserAndDiscipline, scheduleTutoring, addParticipant, leaveTutoring } from '@/services/tutoringService';
+import { getMentorAverageRating } from '@/services/tutoringRatingService'
 import { showSnackbar } from '@/components/AppSnackbar.vue';
 
 // Importar os componentes
@@ -91,6 +88,7 @@ const agendando = ref(false);
 const saindoMentoria = ref(false);
 const dialogConfirmacao = ref(false);
 const topicoMentoria = ref('');
+const mentorAverageRating = ref(null); // Novo estado para a nota média do mentor
 
 // Filtros
 const filtros = ref({
@@ -104,15 +102,12 @@ const tiposMentoria = [
   { title: 'Presencial', value: 'PRESENCIAL' }
 ];
 
-// CORREÇÃO:
 const hoje = new Date();
 const dataMinima = hoje.toISOString().split('T')[0];
-// Criar uma nova instância para não modificar a original
 const dataMax = new Date(hoje);
 dataMax.setMonth(dataMax.getMonth() + 3);
 const dataMaxima = dataMax.toISOString().split('T')[0];
 
-// Inicializar com a data de hoje
 const initializeDate = () => {
   try {
     const hoje = new Date();
@@ -122,7 +117,6 @@ const initializeDate = () => {
     return hoje.toISOString().split('T')[0];
   } catch (error) {
     console.error('Erro ao inicializar data:', error);
-    // Fallback para uma data conhecida
     return '2024-01-01';
   }
 };
@@ -166,15 +160,12 @@ const buscarMentorias = async (disciplineId, date) => {
 
   carregandoMentorias.value = true;
   try {
-    // Garantir que a data está no formato correto (YYYY-MM-DD)
     let dataFormatada;
     if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      dataFormatada = date; // Já está no formato correto
+      dataFormatada = date;
     } else if (typeof date === 'string') {
-      // Tentar outros formatos
       const dateParts = date.split('/');
       if (dateParts.length === 3) {
-        // Assumir formato DD/MM/YYYY
         dataFormatada = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
       } else {
         dataFormatada = date;
@@ -184,7 +175,6 @@ const buscarMentorias = async (disciplineId, date) => {
         console.error('Data inválida:', date);
         return;
       }
-      // Converter sem problemas de timezone
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -221,7 +211,6 @@ const handleDisciplinaChange = (disciplineId) => {
 
   if (disciplineId) {
     disciplinaSelecionada.value = disciplinas.value.find(d => d.disciplineId === disciplineId);
-    // Buscar mentorias com a data atual selecionada
     if (dataSelecionada.value) {
       buscarMentorias(disciplineId, dataSelecionada.value);
     }
@@ -230,19 +219,16 @@ const handleDisciplinaChange = (disciplineId) => {
     mentorias.value = [];
   }
 
-  // Limpar mentoria selecionada quando trocar disciplina
   mentoriaSelecionada.value = null;
 };
 
 const handleDataChange = (novaData) => {
   dataSelecionada.value = novaData;
 
-  // Se há uma disciplina selecionada, buscar mentorias para a nova data
   if (disciplinaSelecionada.value && novaData) {
     buscarMentorias(disciplinaSelecionada.value.disciplineId, novaData);
   }
 
-  // Limpar mentoria selecionada quando trocar data
   mentoriaSelecionada.value = null;
 };
 
@@ -254,7 +240,7 @@ const limparFiltros = () => {
   filtros.value.disciplina = null;
   filtros.value.tipo = null;
   disciplinaSelecionada.value = null;
-  dataSelecionada.value = new Date().toISOString().split('T')[0]; // Voltar para hoje
+  dataSelecionada.value = new Date().toISOString().split('T')[0];
   mentorias.value = [];
   mentoriaSelecionada.value = null;
   showSnackbar('Filtros limpos!', 'info');
@@ -268,9 +254,8 @@ const limparDisciplina = () => {
 };
 
 const limparData = () => {
-  dataSelecionada.value = new Date().toISOString().split('T')[0]; // Voltar para hoje
+  dataSelecionada.value = new Date().toISOString().split('T')[0];
 
-  // Se há uma disciplina selecionada, buscar mentorias para hoje
   if (disciplinaSelecionada.value) {
     buscarMentorias(disciplinaSelecionada.value.disciplineId, dataSelecionada.value);
   }
@@ -290,7 +275,6 @@ const agendarMentoria = (mentoria) => {
     return;
   }
 
-  // Definir a mentoria selecionada se não estiver definida
   if (!mentoriaSelecionada.value || mentoriaSelecionada.value.id !== mentoria.id) {
     mentoriaSelecionada.value = mentoria;
   }
@@ -315,10 +299,8 @@ const confirmarAgendamento = async () => {
         return;
       }
 
-      // CORREÇÃO: Validar a data antes de formatar
       let dataFormatada;
       if (typeof dataSelecionada.value === 'string') {
-        // Verificar se a string está no formato correto
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dataSelecionada.value)) {
           showSnackbar('Erro: Formato de data inválido.', 'error');
           return;
@@ -340,7 +322,7 @@ const confirmarAgendamento = async () => {
         disciplineId: disciplinaSelecionada.value.disciplineId,
         menteeId: parseInt(authStore.userId),
         topic: topicoMentoria.value || null,
-        tutoringDate: dataFormatada, // Usar a data selecionada no calendário
+        tutoringDate: dataFormatada,
         startTime: mentoria.startTime,
         endTime: mentoria.endTime,
         tutoringClassType: mentoria.tutoringClassType
@@ -351,7 +333,6 @@ const confirmarAgendamento = async () => {
       await scheduleTutoring(payload);
       showSnackbar('Mentoria agendada com sucesso! Aguarde a confirmação do mentor.', 'success', 5000);
     } else {
-      // Participar de mentoria existente - usar a data da própria mentoria
       const payload = {
         userId: parseInt(authStore.userId),
         topic: mentoria.status === 'EM_ANDAMENTO' ? null : (topicoMentoria.value || null)
@@ -365,7 +346,6 @@ const confirmarAgendamento = async () => {
     mentoriaSelecionada.value = null;
     topicoMentoria.value = '';
 
-    // Recarregar mentorias após agendamento
     if (disciplinaSelecionada.value && dataSelecionada.value) {
       await buscarMentorias(disciplinaSelecionada.value.disciplineId, dataSelecionada.value);
     }
@@ -398,7 +378,6 @@ const sairMentoria = async (mentoria) => {
     await leaveTutoring(mentoria.id, parseInt(authStore.userId));
     showSnackbar('Você saiu da mentoria com sucesso!', 'success');
 
-    // Forçar refresh completo
     await forcarRefreshMentorias();
 
   } catch (error) {
@@ -415,14 +394,11 @@ const forcarRefreshMentorias = async () => {
 
   console.log('=== FORÇANDO REFRESH COMPLETO ===');
 
-  // Limpar tudo primeiro
   mentorias.value = [];
   mentoriaSelecionada.value = null;
 
-  // Aguardar um pouco
   await new Promise(resolve => setTimeout(resolve, 500));
 
-  // Buscar novamente
   try {
     carregandoMentorias.value = true;
     const response = await getAvailableTutoringsForUserAndDiscipline(
@@ -445,8 +421,7 @@ const forcarRefreshMentorias = async () => {
 
 const formatarData = (dataString) => {
   if (!dataString) return '';
-  
-  // Se já é uma instância de Date
+
   if (dataString instanceof Date) {
     if (isNaN(dataString.getTime())) {
       console.warn('formatarData: data inválida:', dataString);
@@ -458,26 +433,23 @@ const formatarData = (dataString) => {
       year: 'numeric'
     });
   }
-   // Se não é string, retornar erro
+
   if (typeof dataString !== 'string') {
     console.warn('formatarData: entrada inválida:', dataString);
     return 'Data inválida';
   }
 
-  // Verificar se já está no formato brasileiro DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataString)) {
     return dataString;
   }
-  
-  // Verificar se está no formato ISO YYYY-MM-DD
+
   if (/^\d{4}-\d{2}-\d{2}$/.test(dataString)) {
     const [year, month, day] = dataString.split('-').map(Number);
     return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
   }
-  
-  // Para outros formatos, tentar converter (mas cuidado com timezone)
-  const data = new Date(dataString + 'T00:00:00'); // Forçar horário local
-  
+
+  const data = new Date(dataString + 'T00:00:00');
+
   if (isNaN(data.getTime())) {
     console.warn('formatarData: não foi possível converter a data:', dataString);
     return dataString;
@@ -497,10 +469,23 @@ watch(() => filtros.value.disciplina, (newDisciplineId) => {
   }
 });
 
+// Novo watcher para buscar a avaliação do mentor
+watch(mentoriaSelecionada, async (newMentoria) => {
+  mentorAverageRating.value = null; // Limpa a avaliação anterior
+  if (newMentoria && newMentoria.mentorId) {
+    try {
+      const response = await getMentorAverageRating(newMentoria.mentorId);
+      mentorAverageRating.value = response.data.averageRating;
+    } catch (error) {
+      console.error('Erro ao buscar avaliação média do mentor:', error);
+      mentorAverageRating.value = null;
+    }
+  }
+});
+
 onMounted(async () => {
   await buscarDisciplinas();
 
-  // Se vier com disciplineId na query, selecionar automaticamente
   const disciplineIdFromQuery = router.currentRoute.value.query.disciplineId;
   if (disciplineIdFromQuery && disciplinas.value.length > 0) {
     const disciplineId = parseInt(disciplineIdFromQuery);

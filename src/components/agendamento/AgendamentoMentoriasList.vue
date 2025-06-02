@@ -126,9 +126,9 @@
                         <v-icon class="mr-1" small>mdi-account-group</v-icon>
                         <strong>Participantes:</strong> {{ mentoria.qtdParticipants || 0 }} / {{ mentoria.maxParticipants }}
                       </p>
-                      <p v-if="mentoria.isChatEnable !== undefined">
-                        <v-icon class="mr-1" small>mdi-chat</v-icon>
-                        <strong>Chat:</strong> {{ mentoria.isChatEnable ? 'Habilitado' : 'Desabilitado' }}
+                      <p v-if="mentoria.mentorName && mentorAverageRating !== null">
+                        <v-icon class="mr-1" small>mdi-star</v-icon>
+                        <strong>Avaliação do Mentor:</strong> {{ mentorAverageRating ? mentorAverageRating.toFixed(2) : 'N/A' }}
                       </p>
                     </v-col>
 
@@ -244,6 +244,10 @@ const props = defineProps({
   saindoMentoria: {
     type: Boolean,
     default: false
+  },
+  mentorAverageRating: {
+    type: Number,
+    default: null
   }
 });
 

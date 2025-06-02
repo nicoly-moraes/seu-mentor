@@ -1,7 +1,5 @@
 <template>
   <div class="pa-4">
-    <h1 class="titulo text-h4 mb-6 font-weight-bold">Minhas Mentorias (Mentorado)</h1>
-
     <v-row>
       <v-col cols="12" class="btn">
         <v-btn
@@ -30,8 +28,6 @@
               :class="{ 'list-item-expanded': expandedSession === session.id }"
               @click="toggleExpansion(session.id)"
             >
-
-
               <v-list-item-title class="text-subtitle-1 font-weight-medium">
                 {{ session.disciplineName }}
               </v-list-item-title>
@@ -52,7 +48,7 @@
               </v-list-item-subtitle>
 
               <template v-slot:append>
-                <v-icon 
+                <v-icon
                   :class="{ 'rotate-icon': expandedSession === session.id }"
                   class="transition-transform"
                 >
@@ -60,23 +56,22 @@
                 </v-icon>
               </template>
 
-              <!-- Expansion Panel Content -->
               <v-expand-transition>
                 <div v-if="expandedSession === session.id" class="expansion-content mt-4">
                   <v-divider class="mb-4"></v-divider>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6">
                       <div class="detail-item">
                         <v-icon class="mr-2" size="small">mdi-account</v-icon>
                         <strong>Mentor:</strong> {{ session.mentorName }}
                       </div>
-                      
+
                       <div class="detail-item">
                         <v-icon class="mr-2" size="small">mdi-calendar</v-icon>
                         <strong>Data:</strong> {{ props.formatDate(session.tutoringDate) }}
                       </div>
-                      
+
                       <div class="detail-item">
                         <v-icon class="mr-2" size="small">mdi-clock-outline</v-icon>
                         <strong>Horário:</strong> {{ session.startTime }} - {{ session.endTime }}
@@ -93,14 +88,14 @@
                         <v-icon class="mr-2" size="small">mdi-map-marker</v-icon>
                         <strong>Local:</strong> {{ session.local }}
                       </div>
-                      
+
                       <div v-if="session.linkVideo && session.linkVideo !== 'Não se aplica'" class="detail-item">
                         <v-icon class="mr-2" size="small">mdi-video</v-icon>
                         <strong>Link:</strong>
-                        <a 
-                          :href="session.linkVideo" 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
+                        <a
+                          :href="session.linkVideo"
+                          target="_blank"
+                          rel="noopener noreferrer"
                           class="text-decoration-none ml-1"
                           @click.stop
                         >
@@ -110,8 +105,8 @@
 
                       <div class="detail-item">
                         <v-chip
-                          size="small" 
-                          :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'" 
+                          size="small"
+                          :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'"
                           label
                         >
                           {{ session.tutoringClassType }}
@@ -140,9 +135,20 @@
                     </div>
                   </div>
 
-                  <!-- Actions -->
                   <v-row class="mt-4" justify="end">
                     <v-col cols="auto">
+                      <v-btn
+                        v-if="session.status === 'CONCLUIDA' && !hasBeenRated[session.id]"
+                        color="secondary"
+                        variant="flat"
+                        prepend-icon="mdi-star"
+                        @click.stop="openRatingDialog(session)"
+                        size="small"
+                        class="mr-2"
+                      >
+                        Avaliar Mentor
+                      </v-btn>
+
                       <v-btn
                         v-if="session.status !== 'CONCLUIDA'"
                         color="error"
@@ -171,6 +177,39 @@
       </v-col>
     </v-row>
 
+    <v-dialog v-model="showRatingDialog" max-width="500px">
+      <v-card>
+        <v-card-title class="headline">Avaliar Mentoria</v-card-title>
+        <v-card-text>
+          <div class="text-center">
+            <p class="text-h6 mb-2">Como você avalia o mentor?</p>
+            <v-rating
+              v-model="mentorRating"
+              color="warning"
+              empty-icon="mdi-star-outline"
+              full-icon="mdi-star"
+              half-increments
+              hover
+              size="48"
+            ></v-rating>
+            <p class="text-subtitle-1 mt-4">Comentário (opcional):</p>
+            <v-textarea
+              v-model="reviewComment"
+              label="Deixe seu comentário aqui"
+              rows="3"
+              clearable
+              variant="outlined"
+            ></v-textarea>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="grey-darken-1" variant="text" @click="closeRatingDialog" :disabled="isSubmittingRating">Cancelar</v-btn>
+          <v-btn color="primary" variant="flat" @click="submitRating" :loading="isSubmittingRating">Enviar Avaliação</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-snackbar
       v-model="snackbar.show"
       :color="snackbar.color"
@@ -197,6 +236,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { leaveTutoringSession } from '@/services/userService';
+import { getTutoringRatingsByTutoringId, addTutoringRating } from '@/services/tutoringRatingService';
 
 const props = defineProps({
   participationSessions: { type: Array, default: () => [] },
@@ -211,6 +251,14 @@ const authStore = useAuthStore();
 const isLeavingTutoring = ref(null);
 const expandedSession = ref(null);
 
+// --- Novo Estado para o Pop-up de Avaliação ---
+const showRatingDialog = ref(false);
+const currentTutoringToRate = ref(null);
+const mentorRating = ref(0); // Para a classificação por estrelas
+const reviewComment = ref('');
+const isSubmittingRating = ref(false);
+const hasBeenRated = ref({});
+
 // --- State for Snackbar (Toast) ---
 const snackbar = ref({
   show: false,
@@ -218,6 +266,108 @@ const snackbar = ref({
   color: '',
   timeout: 5000,
 });
+
+const notifiedSessions = ref(new Set());
+
+const upcomingMentoringSessions = computed(() => {
+  const now = new Date();
+  return props.participationSessions.filter(session => {
+    const sessionDateTime = new Date(`${session.tutoringDate}T${session.startTime}`);
+    // Considere as sessões que ainda não começaram ou estão dentro de um curto período de tempo
+    // (ex: nos próximos 30 minutos ou que começaram há até 10 minutos atrás, ajuste conforme necessidade)
+    const thirtyMinutesBefore = new Date(sessionDateTime.getTime() - 30 * 60 * 1000);
+    const tenMinutesAfter = new Date(sessionDateTime.getTime() + 10 * 60 * 1000);
+
+    return (sessionDateTime > now || (now >= thirtyMinutesBefore && now <= tenMinutesAfter)) &&
+           session.status !== 'CANCELADA' &&
+           session.status !== 'CONCLUIDA' && // As notificações são para sessões futuras ou em andamento
+           session.status !== 'FINALIZADA'; // As notificações são para sessões futuras ou em andamento
+  });
+});
+
+// --- Novas Funções de Avaliação ---
+const openRatingDialog = async (session) => {
+  currentTutoringToRate.value = session;
+  mentorRating.value = 0; // Redefinir avaliação
+  reviewComment.value = ''; // Redefinir comentário
+
+  // Opcional: Verificar se já foi avaliado antes de abrir (embora o botão deva lidar com isso)
+  // Isso é bom para robustez, especialmente se o estado `hasBeenRated` não for totalmente confiável.
+  try {
+    const response = await getTutoringRatingsByTutoringId(session.id);
+    const ratings = response.data;
+    if (ratings && ratings.length > 0) {
+      showSnackbar('Esta mentoria já foi avaliada!', 'info');
+      // Opcionalmente, você poderia preencher o diálogo com a avaliação existente para edição
+      // ou apenas impedir a abertura do diálogo aqui. Por enquanto, apenas informamos.
+      return;
+    }
+  } catch (error) {
+    console.error("Erro ao verificar avaliação existente:", error);
+    // Continuar abrindo o diálogo se houver um erro ao buscar,
+    // assumindo que isso significa que nenhuma avaliação existe ou um problema com a API.
+  }
+
+  showRatingDialog.value = true;
+};
+
+const closeRatingDialog = () => {
+  showRatingDialog.value = false;
+  currentTutoringToRate.value = null;
+};
+
+const submitRating = async () => {
+  if (!currentTutoringToRate.value || mentorRating.value === 0) {
+    showSnackbar('Por favor, selecione uma nota para o mentor.', 'warning');
+    return;
+  }
+
+  isSubmittingRating.value = true;
+  try {
+    const ratingData = {
+      mentorRating: mentorRating.value,
+      review: reviewComment.value,
+      tutoringId: currentTutoringToRate.value.id // Garanta que o tutoringId seja passado
+    };
+    await addTutoringRating(currentTutoringToRate.value.id, ratingData);
+    showSnackbar('Avaliação enviada com sucesso!', 'success');
+    hasBeenRated.value[currentTutoringToRate.value.id] = true; // Marcar como avaliado
+    closeRatingDialog();
+    emit('refresh-sessions'); // Emitir um evento para o pai recarregar as sessões, se necessário
+  } catch (error) {
+    console.error("Erro ao enviar avaliação:", error);
+    let errorMessage = "Ocorreu um erro ao enviar sua avaliação.";
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    }
+    showSnackbar(errorMessage, 'error');
+  } finally {
+    isSubmittingRating.value = false;
+  }
+};
+
+// Monitora as mudanças em participationSessions para inicializar `hasBeenRated`
+// e potencialmente verificar avaliações existentes.
+watch(() => props.participationSessions, async (newSessions) => {
+  // Reinicia hasBeenRated para um novo conjunto de sessões
+  hasBeenRated.value = {};
+  for (const session of newSessions) {
+    if (session.status === 'FINALIZADA') { // Ou 'CONCLUIDA' conforme seu código original
+      try {
+        const response = await getTutoringRatingsByTutoringId(session.id);
+        hasBeenRated.value[session.id] = response.data && response.data.length > 0;
+      } catch (error) {
+        console.error(`Erro ao verificar avaliação para a mentoria ${session.id}:`, error);
+        hasBeenRated.value[session.id] = false; // Assume que não foi avaliado se a chamada da API falhar
+      }
+    } else {
+      hasBeenRated.value[session.id] = false;
+    }
+  }
+}, { immediate: true, deep: true }); // immediate: true executa na montagem do componente
+
 
 // Function to toggle expansion
 const toggleExpansion = (sessionId) => {
@@ -228,6 +378,32 @@ const toggleExpansion = (sessionId) => {
 const showSnackbar = (message, color = 'info', timeout = 5000) => {
   snackbar.value = { show: true, message, color, timeout };
 };
+
+watch(upcomingMentoringSessions, (newSessions) => {
+  newSessions.forEach(session => {
+    if (!notifiedSessions.value.has(session.id)) {
+      // Ajuste para exibir a mensagem de notificação de forma mais robusta
+      // Considerando que o status da mentoria pode não ser sempre 'FINALIZADA' aqui.
+      const now = new Date();
+      const sessionStart = new Date(`${session.tutoringDate}T${session.startTime}`);
+      let notificationMessage = `Atenção! Mentoria de ${session.disciplineName} com ${session.mentorName}`;
+      if (sessionStart > now) {
+        notificationMessage += ` está prestes a começar em ${session.startTime}!`;
+      } else {
+        notificationMessage += ` começou às ${session.startTime}!`;
+      }
+      showSnackbar(notificationMessage, 'info', 10000);
+      notifiedSessions.value.add(session.id);
+    }
+  });
+  // Remover IDs de sessões que não estão mais na lista de upcoming
+  const currentSessionIds = new Set(newSessions.map(s => s.id));
+  notifiedSessions.value.forEach(id => {
+    if (!currentSessionIds.has(id)) {
+      notifiedSessions.value.delete(id);
+    }
+  });
+}, { deep: true });
 
 async function handleLeaveTutoring(tutoringId) {
   if (!window.confirm("Você tem certeza que deseja sair desta mentoria? Esta ação não pode ser desfeita.")) {
