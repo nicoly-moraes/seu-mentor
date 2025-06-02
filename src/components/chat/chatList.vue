@@ -1,13 +1,12 @@
 <template>
-  <v-dialog v-model="visible" :fullscreen="$vuetify.display.smAndDown"
-    :max-width="$vuetify.display.smAndDown ? undefined : '1200px'"
-    :height="$vuetify.display.smAndDown ? undefined : '700px'" transition="dialog-bottom-transition" persistent
-    class="chat-dialog">
+  <v-dialog v-model="visible" :fullscreen="smAndDown.value" :max-width="smAndDown.value ? undefined : '1200px'"
+    :height="smAndDown.value ? undefined : '700px'" transition="dialog-bottom-transition" persistent
+    class="chat-dialog" rounded>
     <v-card class="chat-list-container">
       <!-- Sidebar de Conversas -->
-      <v-navigation-drawer v-model="drawer" :rail="!$vuetify.display.mdAndUp && !drawerExpanded"
-        :permanent="$vuetify.display.mdAndUp" :temporary="!$vuetify.display.mdAndUp" width="400" class="chat-sidebar"
-        :class="{ 'drawer-expanded': drawerExpanded }">
+      <v-navigation-drawer v-model="drawer" :rail="!mdAndUp && !drawerExpanded" :permanent="mdAndUp"
+        :temporary="!mdAndUp" width="400" class="chat-sidebar" :class="{ 'drawer-expanded': drawerExpanded }"
+        :style="chatSidebarStyles" rounded>
         <!-- Header da Sidebar -->
         <v-toolbar color="primary" dark flat class="sidebar-header">
           <v-btn icon="mdi mdi-close" class="close-button" @click="close">
@@ -228,7 +227,7 @@
       </v-main>
 
       <!-- Botão flutuante para mobile -->
-      <v-btn v-if="$vuetify.display.smAndDown && chatStore.selectedChat" fab fixed bottom left color="primary"
+      <v-btn v-if="smAndDown.value && chatStore.selectedChat" fab fixed bottom left color="primary"
         @click="toggleDrawer" class="mobile-drawer-toggle">
         <v-icon>mdi-menu</v-icon>
       </v-btn>
@@ -241,6 +240,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useChatStore } from '@/stores/chat';
 import { useAuthStore } from '@/stores/auth';
 import MentoringChat from './MentoringChat.vue';
+import { useDisplay } from 'vuetify';
 
 const props = defineProps({
   modelValue: {
@@ -261,6 +261,7 @@ const drawerExpanded = ref(false);
 const searchQuery = ref('');
 const selectedFilter = ref('all');
 const showArchivedChats = ref(false);
+const { mdAndUp, smAndDown } = useDisplay();
 
 // Computed
 const visible = computed({
@@ -320,7 +321,7 @@ const selectChat = async (chat) => {
   await chatStore.selectChat(chat);
 
   // Em mobile, fechar o drawer
-  if (!$vuetify.display.mdAndUp) {
+  if (!mdAndUp.value) {
     drawer.value = false;
   }
 };
@@ -339,7 +340,7 @@ const formatChatTime = (date) => {
     if (typeof dateInput === 'string') {
       // Primeiro, tentar o parse nativo
       let parsed = new Date(dateInput);
-      
+
       // Se deu certo, retornar
       if (!isNaN(parsed.getTime())) {
         return parsed;
@@ -348,11 +349,11 @@ const formatChatTime = (date) => {
       // Tentar formato brasileiro DD/MM/AAAA HH:mm ou DD/MM/AAAA
       const brDateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{1,2}))?/;
       const brMatch = dateInput.match(brDateRegex);
-      
+
       if (brMatch) {
         const [, day, month, year, hour = '00', minute = '00'] = brMatch;
         parsed = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
-        
+
         if (!isNaN(parsed.getTime())) {
           return parsed;
         }
@@ -361,7 +362,7 @@ const formatChatTime = (date) => {
       // Tentar formato ISO sem timezone
       const cleanDate = dateInput.replace(/[+-]\d{2}:\d{2}$/, '');
       parsed = new Date(cleanDate);
-      
+
       if (!isNaN(parsed.getTime())) {
         return parsed;
       }
@@ -380,7 +381,7 @@ const formatChatTime = (date) => {
 
   // Tentar parsear a data
   const messageDate = parseDate(date);
-  
+
   if (!messageDate) {
     console.warn('Data inválida recebida:', date);
     return '';
@@ -389,10 +390,10 @@ const formatChatTime = (date) => {
   const now = new Date();
   const diffInMillis = now - messageDate;
   const diffInHours = Math.abs(diffInMillis) / (1000 * 60 * 60);
-  
+
   // Verificar se é uma data futura (mentoria agendada)
   const isFutureDate = diffInMillis < -3600000; // -1 hora em millisegundos
-  
+
   if (isFutureDate) {
     // Formatar data futura (mentoria agendada) - PADRÃO BRASILEIRO
     const day = messageDate.getDate().toString().padStart(2, '0');
@@ -400,7 +401,7 @@ const formatChatTime = (date) => {
     const year = messageDate.getFullYear();
     const hours = messageDate.getHours().toString().padStart(2, '0');
     const minutes = messageDate.getMinutes().toString().padStart(2, '0');
-    
+
     // Se for no mesmo ano
     if (year === now.getFullYear()) {
       // Se não for meia-noite, mostrar com horário
@@ -420,26 +421,26 @@ const formatChatTime = (date) => {
   }
 
   // Datas no passado (mensagens e mentorias finalizadas)
-  
+
   // Mensagens muito recentes (menos de 1 minuto)
   if (diffInMillis < 60000 && diffInMillis >= 0) {
     return 'Agora';
   }
-  
+
   // Menos de 1 hora
   if (diffInHours < 1 && diffInMillis >= 0) {
     const minutes = Math.floor(diffInMillis / 60000);
     return `${minutes} min atrás`;
   }
-  
+
   // Verificar se é hoje
   const isToday = messageDate.toDateString() === now.toDateString();
-  
+
   if (isToday) {
     // Se foi hoje, mostrar apenas a hora (se não for meia-noite)
     const hours = messageDate.getHours();
     const minutes = messageDate.getMinutes();
-    
+
     if (hours === 0 && minutes === 0) {
       // Se for exatamente meia-noite, mostrar como data do dia anterior
       const day = messageDate.getDate().toString().padStart(2, '0');
@@ -452,32 +453,32 @@ const formatChatTime = (date) => {
       return `${hourStr}:${minuteStr}`;
     }
   }
-  
+
   // Verificar se é ontem
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   const isYesterday = messageDate.toDateString() === yesterday.toDateString();
-  
+
   if (isYesterday) {
     return 'Ontem';
   }
-  
+
   // Esta semana (menos de 7 dias) - dias da semana em português
   if (diffInHours < 168 && diffInMillis >= 0) {
     const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     return daysOfWeek[messageDate.getDay()];
   }
-  
+
   // Formatação para datas mais antigas - SEMPRE PADRÃO BRASILEIRO
   const day = messageDate.getDate().toString().padStart(2, '0');
   const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
   const year = messageDate.getFullYear();
-  
+
   // Mesmo ano - mostrar DD/MM
   if (year === now.getFullYear()) {
     return `${day}/${month}`;
   }
-  
+
   // Anos diferentes - mostrar DD/MM/AAAA (ano completo para maior clareza)
   return `${day}/${month}/${year}`;
 };
@@ -505,7 +506,7 @@ const getStatusColor = (status) => {
 // Handlers
 const handleChatBack = () => {
   chatStore.selectedChat = null;
-  if (!$vuetify.display.mdAndUp) {
+  if (!mdAndUp.value) {
     drawer.value = true;
   }
 };
