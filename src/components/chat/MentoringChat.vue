@@ -241,6 +241,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import chatService from '@/services/fileUploadService';
+import chatStatusController from '@/services/chatStatusService'
 
 const props = defineProps({
   mentoria: { // This will be chatStore.selectedChat

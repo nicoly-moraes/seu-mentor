@@ -2,7 +2,7 @@
   <div class="chat-manager">
     <!-- Botão flutuante para abrir o chat -->
     <v-btn
-      v-if="!chatStore.chatListOpen && chatStore.hasActiveChats"
+      v-if="!chatStore.chatListOpen"
       fab
       fixed
       rounded
