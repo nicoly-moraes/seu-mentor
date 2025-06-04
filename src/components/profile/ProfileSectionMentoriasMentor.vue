@@ -91,12 +91,12 @@
                         <v-icon class="mr-2" size="small">mdi-account-group-outline</v-icon>
                         <strong>Máx. Participantes:</strong> {{ session.maxParticipants }}
                       </div>
-                       <div class="detail-item">
+                        <div class="detail-item">
                         <v-icon class="mr-2" size="small">mdi-chat-processing-outline</v-icon>
                         <strong>Chat:</strong> {{ session.isChatEnable ? 'Habilitado' : 'Desabilitado' }}
                       </div>
                       <div class="detail-item">
-                         <v-chip
+                          <v-chip
                             size="small"
                             :color="session.tutoringClassType === 'ONLINE' ? 'info' : 'success'"
                             label
@@ -133,6 +133,45 @@
                     </v-col>
                   </v-row>
 
+                  <v-divider class="my-4"></v-divider>
+                  <div class="comments-section">
+                    <div class="topics-header mb-2">
+                        <v-icon class="mr-2" size="small">mdi-comment-text-multiple-outline</v-icon>
+                        <strong>Avaliações da Mentoria:</strong>
+                    </div>
+                    <div v-if="loadingRatings[session.id]" class="text-center pa-2">
+                      <v-progress-circular indeterminate size="20" width="2" color="grey"></v-progress-circular>
+                      <span class="text-caption ml-2">Carregando comentários...</span>
+                    </div>
+                    <div v-else-if="sessionRatings[session.id] && sessionRatings[session.id].length > 0">
+                      <v-list density="compact" class="py-0 bg-transparent comments-list-container">
+                        <v-list-item
+                          v-for="rating in sessionRatings[session.id]"
+                          :key="rating.id"
+                          class="px-1 py-0 my-0 comment-list-item"
+                        >
+                          <v-list-item-content>
+                            <v-list-item-title class="text-caption font-italic">
+                              "{{ rating.review || 'Não há comentário.' }}"
+                            </v-list-item-title>
+                            <v-list-item-subtitle class="text-caption d-flex align-center mt-1">
+                                <v-rating
+                                    :model-value="rating.mentorRating"
+                                    density="compact"
+                                    color="yellow-darken-3"
+                                    half-increments
+                                    readonly
+                                    size="x-small"
+                                    class="mr-2"
+                                ></v-rating>
+                                (Avaliação: {{ rating.mentorRating }})
+                            </v-list-item-subtitle>
+                          </v-list-item-content>
+                        </v-list-item>
+                      </v-list>
+                    </div>
+                    <p v-else class="mt-2 text-medium-emphasis text-caption"><em>Não há comentários para esta mentoria.</em></p>
+                  </div>
                   <v-row class="mt-4" justify="end">
                     <v-col cols="auto" class="d-flex flex-wrap ga-2 justify-end">
                       <v-btn
@@ -266,9 +305,10 @@
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue';
 import { confirmTutoringSession, cancelMentorTutoringSession } from '@/services/userService';
 import { updateTutoringStatus } from '@/services/tutoringService';
+import { getTutoringRatingsByTutoringId } from '@/services/tutoringRatingService'; // Importe a função do serviço
 import CancelTutoringDialog from './CancelTutoringDialog.vue';
 import MentoringDetailsDialog from './MentoringDetailsDialog.vue';
-import MentoriaConfirmationDialog from './MentoriaConfirmationDialog.vue'; // Único componente
+import MentoriaConfirmationDialog from './MentoriaConfirmationDialog.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
@@ -292,10 +332,10 @@ const expandedSession = ref(null);
 
 // --- State for Unified Dialog ---
 const isMentoriaDialogVisible = ref(false);
-const sessionToEdit = ref(null); // Used for both confirm and edit dialog context
-const dialogMode = ref('confirm'); // 'confirm' or 'edit'
-const isSessionSaving = ref(null); // ID of session being saved (edited)
-const isSessionConfirming = ref(null); // ID of session being confirmed
+const sessionToEdit = ref(null);
+const dialogMode = ref('confirm');
+const isSessionSaving = ref(null);
+const isSessionConfirming = ref(null);
 
 // --- State for Cancel Dialog ---
 const isCancelDialogVisible = ref(false);
@@ -322,10 +362,46 @@ const notifiedSessions = ref(new Set());
 const currentTimeRef = ref(new Date());
 let intervalId = null;
 
+// --- NEW: State for Mentoring Ratings ---
+const sessionRatings = ref({}); // Stores ratings keyed by tutoringId
+const loadingRatings = ref({}); // Stores loading state for each tutoringId
+
 // --- Function to toggle expansion ---
-const toggleExpansion = (sessionId) => {
-  expandedSession.value = expandedSession.value === sessionId ? null : sessionId;
+const toggleExpansion = async (sessionId) => {
+  if (expandedSession.value === sessionId) {
+    expandedSession.value = null; // Collapse if already expanded
+  } else {
+    expandedSession.value = sessionId; // Expand
+    // Fetch ratings only if the session is being expanded and not already loaded/loading
+    if (!sessionRatings.value[sessionId] && !loadingRatings.value[sessionId]) {
+      await fetchTutoringRatings(sessionId);
+    }
+  }
 };
+
+// --- NEW: Function to fetch tutoring ratings ---
+const fetchTutoringRatings = async (tutoringId) => {
+    loadingRatings.value[tutoringId] = true;
+    try {
+        const response = await getTutoringRatingsByTutoringId(tutoringId);
+        if (response && response.data) {
+            // Filter for ratings that have a 'review' property
+            const reviews = response.data.filter(rating => rating.review && rating.review.trim() !== '');
+            sessionRatings.value[tutoringId] = reviews;
+        } else {
+            sessionRatings.value[tutoringId] = [];
+            console.warn(`No ratings found for tutoringId ${tutoringId} or empty response.`);
+        }
+    } catch (error) {
+        console.error(`Error fetching ratings for tutoringId ${tutoringId}:`, error);
+        sessionRatings.value[tutoringId] = []; // Ensure it's an empty array on error
+        // Optionally, show a snackbar error here if desired
+        showSnackbar(`Erro ao carregar comentários da mentoria ${tutoringId}.`, 'error');
+    } finally {
+        loadingRatings.value[tutoringId] = false;
+    }
+};
+
 
 // --- Helper Functions for Date/Time Comparison ---
 const isSameDay = (date1, date2Input) => {
@@ -355,14 +431,14 @@ const isSameDay = (date1, date2Input) => {
       d2 = new Date(date2Input + 'T00:00:00');
       if (isNaN(d2.getTime())) throw new Error('Invalid date2Input');
     } catch (e) {
-       console.error("Invalid date2Input for isSameDay:", date2Input, e); return false;
+        console.error("Invalid date2Input for isSameDay:", date2Input, e); return false;
     }
   }
   d2.setHours(0,0,0,0);
 
   return d1.getFullYear() === d2.getFullYear() &&
-         d1.getMonth() === d2.getMonth() &&
-         d1.getDate() === d2.getDate();
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
 };
 
 const convertDdMmYyyyToYyyyMmDd = (dateString) => {
@@ -417,44 +493,42 @@ const canStartSessionVisually = (session) => {
 
 // --- Logic for "Encerrar Mentoria" Button ---
 const canEndSession = (session) => {
+  // A sessão pode ser encerrada se seu status for 'EM_ANDAMENTO'
+  // e a hora atual for posterior à hora de início agendada.
+  // Removemos o limite superior da "janela de ativação".
   const now = currentTimeRef.value;
-  const todayISO = now.toISOString().split('T')[0];
-  const isToday = isSameDay(session.tutoringDate, todayISO);
-  const isInProgress = session.status === 'EM_ANDAMENTO';
-
   const formattedDate = convertDdMmYyyyToYyyyMmDd(session.tutoringDate);
   const sessionStartDateTime = new Date(`${formattedDate}T${session.startTime}:00`);
-  const sessionEndDateTime = new Date(`${formattedDate}T${session.endTime}:00`);
 
-  if (isNaN(sessionStartDateTime.getTime()) || isNaN(sessionEndDateTime.getTime())) {
-    console.error('Data ou hora inválida (canEndSession):', session.tutoringDate, session.startTime, session.endTime);
+  if (isNaN(sessionStartDateTime.getTime())) {
+    console.error('Data ou hora inválida (canEndSession):', session.tutoringDate, session.startTime);
     return false;
   }
 
-  const activationWindowStart = sessionStartDateTime;
-  const activationWindowEnd = new Date(sessionEndDateTime.getTime() + 5 * 60 * 1000);
-
-  return isToday && isInProgress && now >= activationWindowStart && now <= activationWindowEnd;
+  // O botão está ativo se a sessão estiver "EM_ANDAMENTO" e a hora atual for posterior à hora de início.
+  // O botão permanece ativo indefinidamente até ser clicado.
+  return session.status === 'EM_ANDAMENTO' && now >= sessionStartDateTime;
 };
 
 const canEndSessionVisually = (session) => {
+  if (session.status !== 'EM_ANDAMENTO') return false;
+
   const now = currentTimeRef.value;
-  const todayISO = now.toISOString().split('T')[0];
-  const isToday = isSameDay(session.tutoringDate, todayISO);
-  const isInProgress = session.status === 'EM_ANDAMENTO';
-
   const formattedDate = convertDdMmYyyyToYyyyMmDd(session.tutoringDate);
-  const sessionEndDateTime = new Date(`${formattedDate}T${session.endTime}:00`);
 
-  if (isNaN(sessionEndDateTime.getTime())) {
-    console.error('Data ou hora inválida (canEndSessionVisually):', session.tutoringDate, session.endTime);
+  const sessionStart = new Date(`${formattedDate}T${session.startTime}:00`);
+  const sessionEnd = new Date(`${formattedDate}T${session.endTime}:00`);
+
+  if (isNaN(sessionStart.getTime()) || isNaN(sessionEnd.getTime())) {
+    console.error('Data ou hora inválida (canEndSessionVisually):', session.tutoringDate, session.startTime, session.endTime);
     return false;
   }
 
-  const visualWindowStart = new Date(sessionEndDateTime.getTime() - 5 * 60 * 1000);
-  const visualWindowEnd = new Date(sessionEndDateTime.getTime() + 5 * 60 * 1000);
+  // Calcula o momento exato em que faltam 5 minutos para o fim da sessão
+  const showButtonTime = new Date(sessionEnd.getTime() - 5 * 60 * 1000);
 
-  return isToday && isInProgress && now >= visualWindowStart && now <= visualWindowEnd;
+  // O botão aparece a partir de 5 minutos antes do fim da sessão
+  return now >= showButtonTime;
 };
 
 // --- Actions for Mentoring Status Update (Start/End) ---
@@ -658,7 +732,7 @@ async function handleConfirmCancellation(payload) {
     } else {
       console.warn("Cancelamento sem dados esperados:", response);
       emit('operation-error', "Cancelada, mas resposta incompleta.");
-      closeCancelSessionDialog();
+      closeCancelDialog();
     }
   } catch (error) {
     console.error(`Erro ao cancelar mentoria ${sessionId}:`, error);
@@ -687,15 +761,6 @@ function closeDetailsDialog() {
   padding: 20px;
   text-align: center;
 }
-
-/* .btn-mentoria class might be less relevant now buttons are in a generic actions row */
-/*
-.btn-mentoria {
-  padding: 10px;
-  display: flex;
-  justify-content: end;
-}
-*/
 
 .v-list-item {
   border: 1px solid rgba(0, 0, 0, 0.12);
@@ -748,13 +813,29 @@ function closeDetailsDialog() {
 .participants-list-container {
   max-height: 150px; /* Or adjust as needed */
   overflow-y: auto;
-  /* border: 1px solid rgba(0,0,0,0.08); */ /* Optional border */
-  /* border-radius: 4px; */ /* Optional border-radius */
-  /* padding: 4px; */ /* Optional padding */
 }
 .participant-list-item.v-list-item--density-compact {
     min-height: auto !important;
     padding-top: 2px !important;
     padding-bottom: 2px !important;
+}
+
+/* NEW: Styles for comments section */
+.comments-list-container {
+    max-height: 120px; /* Adjust height as needed */
+    overflow-y: auto;
+    border: 1px dashed rgba(0, 0, 0, 0.08); /* Optional border */
+    border-radius: 4px;
+    padding: 8px !important;
+}
+
+.comment-list-item {
+    margin-bottom: 4px !important;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.05);
+    padding-bottom: 4px !important;
+}
+
+.comment-list-item:last-child {
+    border-bottom: none;
 }
 </style>
