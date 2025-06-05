@@ -84,7 +84,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useChatStore } from '@/stores/chat';
 import { useAuthStore } from '@/stores/auth';
-import ChatList from './ChatList.vue';
+import ChatList from './chatList.vue';
 
 const props = defineProps({
   autoConnect: {
