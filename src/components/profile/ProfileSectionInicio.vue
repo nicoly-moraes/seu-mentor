@@ -32,14 +32,6 @@
                   >
                     {{ session.status }}
                   </v-chip>
-
-                  <v-btn
-                    v-if="editableTutoringStatusForMentor.includes(session.status)"
-                    icon="mdi-pencil"
-                    variant="text"
-                    size="small"
-                    @click="$emit('open-confirmation-form', session)"
-                  ></v-btn>
                 </template>
               </v-list-item>
             </v-list>
